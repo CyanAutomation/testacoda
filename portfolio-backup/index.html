@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111621">
+  <meta name="description" content="A carousel portfolio of Marc Scheimann's public GitHub projects.">
+  <title>Marc Scheimann · Projects</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0e121b; --panel:#171d2a; --muted:#99a5b8; --ink:#f4f6fb; --accent:#87e0c0; --line:#ffffff18; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:radial-gradient(ellipse at 78% 8%,#244d5055,transparent 38%),radial-gradient(ellipse at 6% 90%,#543b7a30,transparent 36%),var(--bg); font:16px/1.5 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    a { color:inherit; }
+    .shell { width:min(1180px,calc(100% - 40px)); margin:auto; padding:32px 0 42px; }
+    header { display:flex; justify-content:space-between; align-items:center; gap:24px; padding:4px 0 40px; }
+    .brand { font-size:14px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#c5d0df; }
+    .eyebrow { color:var(--accent); font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
+    h1 { margin:12px 0 8px; font-size:clamp(2.5rem,6vw,5.4rem); line-height:.98; letter-spacing:-.06em; }
+    .intro { margin:0; color:var(--muted); max-width:610px; }
+    .github-link { border:1px solid var(--line); text-decoration:none; border-radius:999px; padding:10px 16px; color:#dce4ee; white-space:nowrap; }
+    .card { margin-top:36px; display:grid; grid-template-columns:1.05fr .95fr; min-height:510px; overflow:hidden; border:1px solid var(--line); border-radius:28px; background:linear-gradient(130deg,#1d2635f2,#151a25f2); box-shadow:0 30px 100px #0006; }
+    .visual { min-height:440px; padding:30px; position:relative; overflow:hidden; background:linear-gradient(145deg,#243940,#1c2540 58%,#291e3d); }
+    .visual:before,.visual:after { content:""; position:absolute; border:1px solid #ffffff18; border-radius:50%; width:420px;height:420px; right:-150px;top:-140px; }
+    .visual:after { width:280px;height:280px; right:-80px;top:-70px; }
+    .visual-label { position:relative; z-index:1; font-size:12px; letter-spacing:.15em; text-transform:uppercase; color:#d0e8de; }
+    .screen { position:absolute; z-index:2; inset:92px 28px 40px; display:flex; flex-direction:column; border:1px solid #ffffff24; border-radius:16px; overflow:hidden; background:#10151fe8; box-shadow:0 18px 50px #0007; transform:rotate(-2deg); }
+    .screen-top { height:40px; display:flex; align-items:center; gap:7px; border-bottom:1px solid var(--line); padding:0 14px; color:#92a1b7; font-size:11px; }
+    .dot { width:7px;height:7px;border-radius:50%;background:#8edfc1; opacity:.8; }
+    .screen-body { flex:1; padding:26px; display:grid; grid-template-columns:1fr 1fr; gap:12px; align-content:center; }
+    .tile { min-height:72px; border-radius:12px; border:1px solid #ffffff13; background:linear-gradient(135deg,#ffffff0d,#ffffff03); padding:14px; }
+    .tile strong { display:block; font-size:22px; color:#f0f6fa; }
+    .tile span { color:#9aaabe; font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+    .tile.wide { grid-column:span 2; display:flex; align-items:center; justify-content:space-between; }
+    .bars { display:flex; align-items:end; gap:5px; height:38px; }
+    .bars i { display:block; width:10px; border-radius:4px 4px 1px 1px; background:linear-gradient(#a5efd1,#559c95); }
+    .details { padding:46px clamp(24px,5vw,58px); display:flex; flex-direction:column; justify-content:center; }
+    .counter { color:var(--muted); font-variant-numeric:tabular-nums; font-size:13px; }
+    .project-name { margin:16px 0 8px; font-size:clamp(2rem,4vw,3.5rem); letter-spacing:-.045em; line-height:1.05; overflow-wrap:anywhere; }
+    .description { color:#b0bac9; min-height:52px; }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 22px; }
+    .chip { padding:6px 10px; border:1px solid var(--line); border-radius:999px; font-size:12px; color:#c9d4e2; }
+    .metrics { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    .metric { padding:12px; border-radius:12px; background:#ffffff08; border:1px solid #ffffff0c; }
+    .metric b { display:block; font-size:20px; font-variant-numeric:tabular-nums; }
+    .metric span { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.07em; }
+    .actions { margin-top:24px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .live { background:var(--accent); color:#101a1c; padding:11px 16px; border-radius:999px; font-size:13px; font-weight:800; text-decoration:none; }
+    .controls { display:flex; gap:8px; }
+    button { width:42px; height:42px; border:1px solid var(--line); border-radius:50%; color:var(--ink); background:#ffffff09; cursor:pointer; font-size:19px; }
+    button:hover { background:#ffffff19; }
+    button:focus-visible,a:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+    .foot { margin-top:18px; display:flex; justify-content:space-between; align-items:center; gap:18px; color:var(--muted); font-size:12px; }
+    .progress { height:3px; flex:1; background:#ffffff15; border-radius:9px; overflow:hidden; }
+    .progress i { display:block; width:0; height:100%; background:var(--accent); transition:width .2s; }
+    .status { min-height:24px; color:var(--muted); font-size:13px; }
+    @media (max-width:760px) { .shell{width:min(100% - 24px,600px);padding-top:18px} header{padding-bottom:28px}.card{grid-template-columns:1fr;margin-top:20px}.visual{min-height:330px}.screen{inset:72px 20px 26px}.details{padding:30px 24px 26px}.project-name{margin-top:12px}.github-link{font-size:12px;padding:8px 11px} }
+    @media (prefers-reduced-motion:reduce) { *,*:before,*:after { scroll-behavior:auto!important; transition:none!important; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand">Marc Scheimann · Projects</div>
+      <a class="github-link" href="https://github.com/CyanAutomation" target="_blank" rel="noreferrer">GitHub profile ↗</a>
+    </header>
+    <div class="eyebrow">Selected work</div>
+    <h1>Projects in motion.</h1>
+    <p class="intro">A snapshot of public repositories, their technology, and the work behind each release.</p>
+    <section class="card" aria-label="Project carousel">
+      <div class="visual" aria-hidden="true">
+        <div class="visual-label">Repository preview</div>
+        <div class="screen">
+          <div class="screen-top"><i class="dot"></i><span id="preview-label">Project overview</span></div>
+          <div class="screen-body">
+            <div class="tile"><strong id="preview-stars">—</strong><span>GitHub stars</span></div>
+            <div class="tile"><strong id="preview-language">—</strong><span>Primary language</span></div>
+            <div class="tile wide"><div><strong id="preview-health">—</strong><span>Project maturity</span></div><div class="bars"><i style="height:30%"></i><i style="height:54%"></i><i style="height:73%"></i><i style="height:48%"></i><i style="height:92%"></i><i style="height:68%"></i></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="details">
+        <div class="counter" id="counter">Loading repositories…</div>
+        <h2 class="project-name" id="name">Public GitHub projects</h2>
+        <p class="description" id="description">Fetching the latest public repository list.</p>
+        <div class="chips" id="chips"></div>
+        <div class="metrics">
+          <div class="metric"><b id="loc">—</b><span>Lines of code</span></div>
+          <div class="metric"><b id="tests">—</b><span>Test cases · estimate</span></div>
+          <div class="metric"><b id="release">—</b><span>Latest release</span></div>
+          <div class="metric"><b id="updated">—</b><span>Last updated</span></div>
+        </div>
+        <div class="actions">
+          <a class="live" id="repo-link" href="https://github.com/CyanAutomation" target="_blank" rel="noreferrer">View repository ↗</a>
+          <div class="controls"><button id="prev" type="button" aria-label="Previous project">←</button><button id="next" type="button" aria-label="Next project">→</button></div>
+        </div>
+      </div>
+    </section>
+    <div class="foot"><span id="position">Portfolio backup · data from GitHub</span><div class="progress"><i id="progress"></i></div><span id="status" role="status" aria-live="polite"></span></div>
+  </main>
+  <script>
+    // Set this after deploying the Testacoda Worker, for example:
+    // window.TESTACODA_API_BASE = "https://your-worker.your-subdomain.workers.dev";
+    const OWNER = "CyanAutomation";
+    const API_BASE = window.TESTACODA_API_BASE || "";
+    const state = { projects: [], index: 0 };
+
+    function compact(value) {
+      const number = Number(value || 0);
+      return number >= 1000000 ? (number / 1000000).toFixed(1) + "m" :
+        number >= 1000 ? (number / 1000).toFixed(1) + "k" : String(number);
+    }
+
+    function projectShape(item) {
+      const scan = item.scan || item;
+      const repo = scan.repo && scan.repo.full_name ? scan.repo : item;
+      const metrics = scan.metrics || item.metrics || {};
+      const maturity = scan.maturity || item.maturity || {};
+      return {
+        name: repo.name || (repo.full_name || "Repository").split("/").pop(),
+        fullName: repo.full_name || item.full_name || "",
+        description: repo.description || "A public project by CyanAutomation.",
+        url: repo.html_url || "https://github.com/" + OWNER,
+        homepage: repo.homepage || null,
+        language: Object.keys(metrics.languages || {})[0] || repo.language || "—",
+        stars: repo.stars ?? repo.stargazers_count ?? 0,
+        loc: metrics.lines_of_code,
+        tests: metrics.test_cases_estimate,
+        release: metrics.latest_release && metrics.latest_release.tag || "—",
+        maturity: maturity.label || (maturity.score === undefined ? "Not scanned" : maturity.score + "%"),
+        updated: repo.pushed_at || repo.updated_at || ""
+      };
+    }
+
+    async function loadProjects() {
+      if (API_BASE) {
+        try {
+          const response = await fetch(API_BASE.replace(/\/$/, "") + "/v1/repos?owner=" + encodeURIComponent(OWNER));
+          if (!response.ok) throw new Error("Testacoda unavailable");
+          const data = await response.json();
+          if (Array.isArray(data.repositories) && data.repositories.length) return data.repositories.map(projectShape);
+        } catch (error) {
+          document.getElementById("status").textContent = "Using GitHub fallback";
+        }
+      }
+      const response = await fetch("https://api.github.com/users/" + OWNER + "/repos?type=public&sort=updated&per_page=100");
+      if (!response.ok) throw new Error("Could not load public GitHub repositories");
+      const repos = await response.json();
+      return repos.filter((repo) => !repo.private).map(projectShape);
+    }
+
+    function render() {
+      const project = state.projects[state.index];
+      if (!project) return;
+      document.getElementById("counter").textContent = String(state.index + 1).padStart(2, "0") + " / " + String(state.projects.length).padStart(2, "0");
+      document.getElementById("name").textContent = project.name;
+      document.getElementById("description").textContent = project.description;
+      document.getElementById("preview-label").textContent = project.fullName || project.name;
+      document.getElementById("preview-stars").textContent = compact(project.stars);
+      document.getElementById("preview-language").textContent = project.language;
+      document.getElementById("preview-health").textContent = project.maturity;
+      document.getElementById("loc").textContent = project.loc === undefined ? "—" : compact(project.loc);
+      document.getElementById("tests").textContent = project.tests === undefined ? "—" : compact(project.tests);
+      document.getElementById("release").textContent = project.release || "—";
+      document.getElementById("updated").textContent = project.updated ? new Date(project.updated).toLocaleDateString() : "—";
+      document.getElementById("repo-link").href = project.url;
+      document.getElementById("chips").innerHTML = "";
+      [project.language, compact(project.stars) + " stars", project.maturity].forEach((text) => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.textContent = text;
+        document.getElementById("chips").append(chip);
+      });
+      document.getElementById("position").textContent = project.fullName || "Public GitHub project";
+      document.getElementById("progress").style.width = ((state.index + 1) * 100 / state.projects.length) + "%";
+    }
+
+    function move(delta) {
+      if (!state.projects.length) return;
+      state.index = (state.index + delta + state.projects.length) % state.projects.length;
+      render();
+    }
+
+    document.getElementById("prev").addEventListener("click", () => move(-1));
+    document.getElementById("next").addEventListener("click", () => move(1));
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft") move(-1);
+      if (event.key === "ArrowRight") move(1);
+    });
+
+    loadProjects().then((projects) => {
+      state.projects = projects;
+      if (!projects.length) throw new Error("No public repositories were returned");
+      document.getElementById("status").textContent = API_BASE ? "GitHub + Testacoda" : "Live GitHub data";
+      render();
+    }).catch((error) => {
+      document.getElementById("counter").textContent = "Portfolio is ready";
+      document.getElementById("name").textContent = "Could not load repositories";
+      document.getElementById("description").textContent = error.message + ". Check your connection and try again.";
+      document.getElementById("status").textContent = "GitHub API unavailable";
+    });
+  </script>
+</body>
+</html>
