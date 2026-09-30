@@ -28,7 +28,7 @@ export function countLinesOfCode(text) {
 export function countTestCases(path, text) {
   const ext = (path.match(/\.[^.]+$/) || [""])[0].toLowerCase();
   const patterns = ext === ".py"
-    ? [/\bdef\s+test_[A-Za-z0-9_]+\s*\(/g, /\basync\s+def\s+test_[A-Za-z0-9_]+\s*\(/g]
+    ? [/\b(?:async\s+)?def\s+test_[A-Za-z0-9_]+\s*\(/g]
     : ext === ".go"
       ? [/\bfunc\s+Test[A-Z][A-Za-z0-9_]*\s*\(/g]
       : ext === ".rs"
