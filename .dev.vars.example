@@ -1,0 +1,2 @@
+# Optional. A fine-grained token with public repository read access raises GitHub API limits.
+GITHUB_TOKEN=replace-me
