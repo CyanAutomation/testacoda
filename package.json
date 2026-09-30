@@ -1,0 +1,12 @@
+{
+  "name": "testacoda",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Daily public GitHub repository maturity scanner",
+  "scripts": {
+    "dev": "npx wrangler dev",
+    "deploy": "npx wrangler deploy",
+    "test": "node --test"
+  }
+}
