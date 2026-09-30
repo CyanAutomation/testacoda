@@ -20,6 +20,7 @@ test("counts JavaScript test declarations", () => {
   assert.equal(countTestCases("test/example.test.js", "test('one', () => {});\nit('two', () => {});"), 2);
 });
 
-test("counts Python test functions", () => {
-  assert.equal(countTestCases("test_example.py", "def test_one():\n    pass\n"), 1);
+test("counts synchronous and asynchronous Python test functions once", () => {
+  const source = "def test_one():\n    pass\nasync def test_two():\n    pass\n";
+  assert.equal(countTestCases("test_example.py", source), 2);
 });
