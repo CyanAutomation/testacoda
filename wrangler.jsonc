@@ -1,0 +1,41 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "testacoda",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-30",
+  "workers_dev": true,
+  "vars": {
+    "GITHUB_OWNER": "CyanAutomation",
+    "CORS_ORIGIN": "*",
+    "MAX_SOURCE_FILES": "40",
+    "MAX_SOURCE_BYTES": "1500000"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID",
+      "preview_id": "REPLACE_WITH_PREVIEW_KV_NAMESPACE_ID"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "SCANS",
+        "queue": "testacoda-scans"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "testacoda-scans",
+        "max_batch_size": 1,
+        "max_batch_timeout": 5,
+        "max_retries": 3
+      }
+    ]
+  },
+  "triggers": {
+    "crons": [
+      "15 6 * * *"
+    ]
+  }
+}
