@@ -4,6 +4,7 @@ async function github(path){const r=await fetch(`https://api.github.com/${path}`
 export async function refresh(env){
  const old=await env.SNAPSHOTS.get('snapshot','json');let repos=[];
  for(let page=1;page<=10;page++){const batch=await github(`users/${OWNER}/repos?type=owner&per_page=100&page=${page}`);repos.push(...batch.filter(r=>!r.private&&r.owner.login===OWNER));if(batch.length<100)break;}
+ if(!repos.length && old?.repos?.length)throw new Error('GitHub returned an empty repository list; preserving the previous snapshot');
  const existing=old?.projects||{};const projects={};for(const r of repos)if(existing[r.name])projects[r.name]=existing[r.name];
  // Refresh one project per run, preferring changed or oldest measurements.
  const target=[...repos].sort((a,b)=>{const x=projects[a.name],y=projects[b.name];return Number(!!x&&x.pushed_at===a.pushed_at)-Number(!!y&&y.pushed_at===b.pushed_at)||(x?.time||0)-(y?.time||0)})[0];
