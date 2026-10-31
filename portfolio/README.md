@@ -1,6 +1,6 @@
 # Project collection
 
-A Cloudflare Workers portfolio for CyanAutomation's public GitHub repositories. Static assets live in `public/`; the Worker in `src/worker.js` serves a shared KV snapshot at `/api/snapshot` and refreshes it every 15 minutes. Each run refreshes the repository list and scans one changed or oldest project. A complete rotation therefore takes roughly 15 minutes per repository. Failed refreshes preserve the last successful data. KV is eventually consistent.
+A Cloudflare Workers portfolio for CyanAutomation's public GitHub repositories. Static assets live in `public/`; the Worker in `src/worker.js` serves a shared KV snapshot at `/api/snapshot` and refreshes it daily at 00:00 UTC. Each run refreshes the repository list and scans one changed or oldest project. A complete metrics rotation therefore takes roughly one day per repository; for 18 repositories it takes about 18 days, and changed projects are prioritized. Failed refreshes preserve the last successful data. KV is eventually consistent.
 
 ## Develop and test
 
