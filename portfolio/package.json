@@ -1,0 +1,15 @@
+{
+  "name": "testacoda-project-collection",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "npm test && node --check public/app.js && wrangler deploy --dry-run",
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.156.0"
+  },
+  "type": "module"
+}

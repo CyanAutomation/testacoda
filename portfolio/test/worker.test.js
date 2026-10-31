@@ -1,0 +1,3 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import worker,{refresh} from '../src/worker.js';
+test('snapshot API returns shared data and no-store when unavailable',async()=>{const env={SNAPSHOTS:{get:async()=>null}};const r=await worker.fetch(new Request('https://site.test/api/snapshot'),env);assert.equal(r.status,503);assert.equal(r.headers.get('cache-control'),'no-store')});
+test('failed GitHub listing preserves the last snapshot',async()=>{const old=globalThis.fetch;let writes=0;globalThis.fetch=async()=>new Response('',{status:503});try{await assert.rejects(refresh({SNAPSHOTS:{get:async()=>({repos:[],projects:{}}),put:async()=>writes++}}));assert.equal(writes,0)}finally{globalThis.fetch=old}});
