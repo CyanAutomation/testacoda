@@ -3,3 +3,24 @@ export const isTest=p=>/(?:^|\/)(?:tests?|__tests__|playwright)(?:\/|$)|(?:\.tes
 export function selectFiles(tree,limit=25,maxBytes=1000000){let size=0;const all=tree.filter(f=>f.type==='blob'&&isSource(f.path));const files=all.filter(f=>{if(!Number.isFinite(f.size)||f.size>100000||size+f.size>maxBytes)return false;size+=f.size;return true}).slice(0,limit);return {files,partial:files.length<all.length};}
 export function countSource(text,test){return {lines:text.split('\n').filter(l=>l.trim()).length,tests:test?(text.match(/\b(?:it|test)(?:\.(?:only|skip|todo))?\s*\(|\bdef\s+test_\w+\s*\(|\bfunc\s+Test\w+\s*\(/g)||[]).length:0};}
 export function filterProjects(repos,query,category){query=query.trim().toLowerCase();return repos.filter(r=>(!category||r.category===category)&&(!query||[r.name,r.description,...(r.topics||[])].some(x=>(x||'').toLowerCase().includes(query))));}
+export const encodePath=path=>path.split('/').map(encodeURIComponent).join('/');
+export async function loadSnapshot(fetcher,existing=[]){
+  try {
+    const response=await fetcher('/api/snapshot',{cache:'no-store'});
+    if(!response.ok)throw Error('Snapshot unavailable');
+    const snapshot=await response.json();
+    if(!Array.isArray(snapshot.repos))throw Error('Invalid snapshot');
+    return {snapshot,repos:snapshot.repos,message:'GitHub snapshot updated '+new Date(snapshot.updatedAt).toLocaleString('en-GB')};
+  } catch {
+    if(existing.length)return {snapshot:null,repos:existing,message:'Shared data unavailable; showing previously loaded projects.'};
+    try {
+      const response=await fetcher('/repos.json');
+      if(!response.ok)throw Error('Fallback unavailable');
+      const repos=await response.json();
+      if(!Array.isArray(repos))throw Error('Invalid fallback');
+      return {snapshot:null,repos,message:'Shared data unavailable; showing bundled snapshot.'};
+    } catch {
+      return {snapshot:null,repos:[],message:'Project data unavailable. Please try refreshing.'};
+    }
+  }
+}
