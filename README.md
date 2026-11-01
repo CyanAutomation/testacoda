@@ -1,5 +1,7 @@
 # Testacoda
 
+[![CI](https://github.com/CyanAutomation/testacoda/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/CyanAutomation/testacoda/actions/workflows/ci.yml) [![CodeQL](https://github.com/CyanAutomation/testacoda/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/CyanAutomation/testacoda/actions/workflows/codeql.yml) [![zizmor](https://github.com/CyanAutomation/testacoda/actions/workflows/zizmor.yml/badge.svg?branch=main)](https://github.com/CyanAutomation/testacoda/actions/workflows/zizmor.yml) [![Dependabot Updates](https://github.com/CyanAutomation/testacoda/actions/workflows/dependabot/dependabot-updates/badge.svg?branch=main)](https://github.com/CyanAutomation/testacoda/actions/workflows/dependabot/dependabot-updates)
+
 Testacoda is a Cloudflare Worker that evaluates the maturity of CyanAutomation's public GitHub repositories. It refreshes the repository index daily, scans bounded source samples, and serves cached JSON for a portfolio or other clients.
 
 ## What it measures
