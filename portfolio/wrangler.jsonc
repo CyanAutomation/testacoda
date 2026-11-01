@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "testacoda-project-collection",
+  "name": "collection",
   "main": "src/worker.js",
   "compatibility_date": "2026-10-30",
   "assets": {"directory": "./public", "binding": "ASSETS", "run_worker_first": ["/api/*"]},
