@@ -36,4 +36,4 @@ portfolio-backup/index.html is a single-file, self-contained portfolio fallback.
 
 ## Development
 
-Run `npm test` for the Node test suite or `npm run check` to run the tests and validate the Worker with Wrangler's deployment dry run. GitHub Actions checks both Workers, lints the workflow files with actionlint, and runs Zizmor and CodeQL security analysis on pull requests and pushes to `main`.
+Requires Node.js 26 or newer for local development. The version is pinned in `.nvmrc`; the deployed Worker runs on Cloudflare's Workers runtime. Run `npm test` for the Node test suite or `npm run check` to run the tests and validate the Worker with Wrangler's deployment dry run. GitHub Actions checks both Workers, lints the workflow files with actionlint, and runs Zizmor and CodeQL security analysis on pull requests and pushes to `main`.
