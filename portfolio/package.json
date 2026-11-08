@@ -8,6 +8,9 @@
     "check": "npm test && node --check public/app.js && wrangler deploy --dry-run",
     "test": "node --test test/*.test.js"
   },
+  "engines": {
+    "node": ">=26.0.0"
+  },
   "devDependencies": {
     "wrangler": "^4.156.0"
   },
