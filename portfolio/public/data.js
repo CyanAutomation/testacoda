@@ -4,6 +4,8 @@ export function selectFiles(tree,limit=25,maxBytes=1000000){let size=0;const all
 export function countSource(text,test){return {lines:text.split('\n').filter(l=>l.trim()).length,tests:test?(text.match(/\b(?:it|test)(?:\.(?:only|skip|todo))?\s*\(|\bdef\s+test_\w+\s*\(|\bfunc\s+Test\w+\s*\(/g)||[]).length:0};}
 export function filterProjects(repos,query,category){query=query.trim().toLowerCase();return repos.filter(r=>(!category||r.category===category)&&(!query||[r.name,r.description,...(r.topics||[])].some(x=>(x||'').toLowerCase().includes(query))));}
 export const encodePath=path=>path.split('/').map(encodeURIComponent).join('/');
+export function formatReleaseDate(value){if(!value)return '';const date=new Date(value);return Number.isNaN(date.getTime())?'':date.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+export function isWebUrl(value){return typeof value==='string'&&/^https?:\/\//i.test(value);}
 export async function loadSnapshot(fetcher,existing=[]){
   try {
     const response=await fetcher('/api/snapshot',{cache:'no-store'});

@@ -12,4 +12,6 @@ Run `npm run deploy` after logging in to Cloudflare. `wrangler.jsonc` contains t
 
 Repository metadata is public. Scans sample at most 25 source files and 1 MB per project; counts include non-empty comment lines and test declarations are estimates, not executed tests. Partial scans are marked. GitHub data can be stale during outages.
 
+The project card shows the latest published release tag and date when GitHub provides one. Release dates are added as each project's scheduled metrics refresh runs, so existing snapshots gain dates over the normal project rotation. The Stars metric is omitted from the portfolio. When a repository has an HTTP or HTTPS homepage URL, the card shows a “Visit demo” link to it.
+
 For automatic deployments, commit and push this repository to a Git provider, then connect it to Cloudflare Workers Builds. Configure the build root as `portfolio`, use Node.js 26, and set the deploy command to `npm run deploy`. The `portfolio/.nvmrc` pin documents the required build version; check the Workers Builds project settings for an explicit Node version override.
