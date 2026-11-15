@@ -1,4 +1,4 @@
-import { githubJson } from "./github.js";
+import { githubJson, type GitHubEnvironment, type GitHubRepository } from "./github.ts";
 
 const SOURCE_EXTENSIONS = new Set([
   ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".vue", ".svelte",
@@ -7,25 +7,93 @@ const SOURCE_EXTENSIONS = new Set([
   ".html", ".css", ".scss", ".json", ".yml", ".yaml"
 ]);
 
-export function isSourceFile(path) {
+export interface MaturityCheck {
+  id: "documentation" | "license" | "tests" | "automation" | "release";
+  label: string;
+  passed: boolean;
+}
+
+export interface LatestRelease {
+  tag: string;
+  name: string;
+  url?: string;
+}
+
+export interface RepositoryScan {
+  schema_version: 1;
+  scanned_at: string;
+  repo: {
+    full_name: string;
+    html_url: string;
+    description: string;
+    default_branch: string;
+    pushed_at?: string | null;
+    stars: number;
+    forks: number;
+    open_issues: number;
+    homepage: string | null;
+  };
+  metrics: {
+    languages: Record<string, number>;
+    lines_of_code: number;
+    lines_of_code_is_estimate: true;
+    source_files_total: number;
+    source_files_scanned: number;
+    bytes_scanned: number;
+    test_suites_estimate: number;
+    test_cases_estimate: number;
+    test_cases_are_lower_bound: true;
+    latest_release: LatestRelease | null;
+  };
+  maturity: { score: number; label: string; checks: MaturityCheck[] };
+  methodology: {
+    note: string;
+    source_file_limit: number;
+    source_byte_limit: number;
+    tree_truncated: boolean;
+  };
+}
+
+export interface ScanEnvironment extends GitHubEnvironment {
+  MAX_SOURCE_FILES?: string;
+  MAX_SOURCE_BYTES?: string;
+}
+
+interface GitHubTreeItem {
+  type: string;
+  path: string;
+}
+
+interface GitHubTree {
+  tree?: GitHubTreeItem[];
+  truncated?: boolean;
+}
+
+interface GitHubRelease {
+  tag_name?: string;
+  name?: string | null;
+  html_url?: string;
+}
+
+export function isSourceFile(path: string): boolean {
   const name = path.toLowerCase().split("/").pop() || "";
   const dot = name.lastIndexOf(".");
   return dot >= 0 && SOURCE_EXTENSIONS.has(name.slice(dot));
 }
 
-export function isTestPath(path) {
+export function isTestPath(path: string): boolean {
   return /(^|[/._-])(test|tests|spec|specs|__tests__)([/._-]|$)/i.test(path) ||
     /\.(test|spec)\.[^.]+$/i.test(path);
 }
 
-export function countLinesOfCode(text) {
+export function countLinesOfCode(text: string): number {
   return text.split(/\r?\n/).filter((line) => {
     const trimmed = line.trim();
     return trimmed.length > 0 && !/^(\/\/|\/\*|\*\/?|\*|#|<!--|--)/.test(trimmed);
   }).length;
 }
 
-export function countTestCases(path, text) {
+export function countTestCases(path: string, text: string): number {
   const ext = (path.match(/\.[^.]+$/) || [""])[0].toLowerCase();
   const patterns = ext === ".py"
     ? [/\b(?:async\s+)?def\s+test_[A-Za-z0-9_]+\s*\(/g]
@@ -37,12 +105,12 @@ export function countTestCases(path, text) {
   return patterns.reduce((total, pattern) => total + (text.match(pattern) || []).length, 0);
 }
 
-function maturitySignals(paths, testFiles, release) {
+function maturitySignals(paths: string[], testFiles: number, release: LatestRelease | null) {
   const hasReadme = paths.some((path) => /^readme(?:\.[^/]*)?$/i.test(path));
   const hasLicense = paths.some((path) => /^licen[cs]e(?:\.[^/]*)?$/i.test(path));
   const hasCi = paths.some((path) => /^\.github\/workflows\/.+\.ya?ml$/i.test(path)) ||
     paths.some((path) => /^\.travis\.yml$/i.test(path));
-  const checks = [
+  const checks: MaturityCheck[] = [
     { id: "documentation", label: "README", passed: hasReadme },
     { id: "license", label: "License", passed: hasLicense },
     { id: "tests", label: "Test files", passed: testFiles > 0 },
@@ -54,24 +122,26 @@ function maturitySignals(paths, testFiles, release) {
   return { score, label, checks };
 }
 
-async function fetchRawFile(owner, repo, branch, path) {
+async function fetchRawFile(owner: string, repo: string, branch: string, path: string): Promise<string | null> {
   const branchPart = encodeURIComponent(branch).replace(/%2F/gi, "/");
   const pathPart = path.split("/").map(encodeURIComponent).join("/");
-  const response = await fetch("https://raw.githubusercontent.com/" + owner + "/" +
-    repo + "/" + branchPart + "/" + pathPart, {
-      headers: { "User-Agent": "testacoda-repo-maturity-scanner" }
-    });
+  const response = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${branchPart}/${pathPart}`, {
+    headers: { "User-Agent": "testacoda-repo-maturity-scanner" }
+  });
   if (!response.ok) return null;
-  return response.text();
+  return await response.text();
 }
 
-export async function scanRepository(repo, env = {}) {
+export async function scanRepository(
+  repo: GitHubRepository,
+  env: ScanEnvironment = {}
+): Promise<RepositoryScan> {
   const [languages, treeResult, release] = await Promise.all([
-    githubJson(repo.languages_url, env).catch(() => ({})),
-    githubJson("https://api.github.com/repos/" + repo.full_name +
-      "/git/trees/" + encodeURIComponent(repo.default_branch) + "?recursive=1", env),
-    githubJson("https://api.github.com/repos/" + repo.full_name +
-      "/releases/latest", env).catch(() => null)
+    githubJson<Record<string, number>>(repo.languages_url, env).catch(() => ({})),
+    githubJson<GitHubTree>(`https://api.github.com/repos/${repo.full_name}` +
+      `/git/trees/${encodeURIComponent(repo.default_branch)}?recursive=1`, env),
+    githubJson<GitHubRelease>(`https://api.github.com/repos/${repo.full_name}/releases/latest`, env)
+      .catch(() => null)
   ]);
 
   const paths = (treeResult.tree || [])
@@ -104,7 +174,7 @@ export async function scanRepository(repo, env = {}) {
     }
   }
 
-  const latestRelease = release && release.tag_name
+  const latestRelease: LatestRelease | null = release?.tag_name
     ? { tag: release.tag_name, name: release.name || release.tag_name, url: release.html_url }
     : null;
   return {

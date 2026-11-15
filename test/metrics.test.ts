@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { countLinesOfCode, countTestCases, isSourceFile, isTestPath } from "../src/metrics.js";
+import { countLinesOfCode, countTestCases, isSourceFile, isTestPath } from "../src/metrics.ts";
 
 test("recognizes source files without treating prose files as code", () => {
   assert.equal(isSourceFile("src/index.js"), true);
