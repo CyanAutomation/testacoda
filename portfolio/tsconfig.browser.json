@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"]
+  },
+  "include": [
+    "src/app.ts",
+    "src/data.ts",
+    "scripts/**/*.ts",
+    "test/data.test.ts",
+    "test/backup.test.ts",
+    "../portfolio-backup/backup.ts"
+  ]
+}
