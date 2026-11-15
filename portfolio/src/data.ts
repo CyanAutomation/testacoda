@@ -64,7 +64,7 @@ export function selectFiles(
   let size = 0;
   const all = tree.filter((file) => file.type === "blob" && isSource(file.path));
   const files = all.filter((file) => {
-    if (!Number.isFinite(file.size) || file.size === undefined || file.size > 100_000 || size + file.size > maxBytes) {
+    if (file.size === undefined || !Number.isFinite(file.size) || file.size > 100_000 || size + file.size > maxBytes) {
       return false;
     }
     size += file.size;

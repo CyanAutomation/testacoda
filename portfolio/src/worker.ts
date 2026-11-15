@@ -30,10 +30,13 @@ interface GitHubTree {
   truncated?: boolean;
 }
 
-async function github<T>(path: string): Promise<T> {
-  const response = await fetch(`https://api.github.com/${path}`, {
-    headers: { "User-Agent": "testacoda-project-collection", Accept: "application/vnd.github+json" }
+async function github<T>(path: string, env: Pick<Env, "GITHUB_TOKEN">): Promise<T> {
+  const headers = new Headers({
+    "User-Agent": "testacoda-project-collection",
+    Accept: "application/vnd.github+json"
   });
+  if (env.GITHUB_TOKEN) headers.set("Authorization", `Bearer ${env.GITHUB_TOKEN}`);
+  const response = await fetch(`https://api.github.com/${path}`, { headers });
   if (!response.ok) throw new Error(`GitHub ${response.status}`);
   return await response.json() as T;
 }
@@ -52,7 +55,10 @@ export async function refresh(env: Env): Promise<void> {
   const old = await env.SNAPSHOTS.get<PortfolioSnapshot>("snapshot", "json");
   const repos: GitHubRepository[] = [];
   for (let page = 1; page <= 10; page += 1) {
-    const batch: unknown = await github(`users/${OWNER}/repos?type=owner&per_page=100&page=${page}`);
+    const batch: unknown = await github(
+      `users/${OWNER}/repos?type=owner&per_page=100&page=${page}`,
+      env
+    );
     if (!Array.isArray(batch)) throw new Error("Unexpected repository list response");
     repos.push(...batch.filter(isGitHubRepository).filter((repo) => !repo.private && repo.owner.login === OWNER));
     if (batch.length < 100) break;
@@ -80,12 +86,12 @@ export async function refresh(env: Env): Promise<void> {
     try {
       const base = `repos/${target.full_name}`;
       const [languages, release, tree] = await Promise.all([
-        github<Record<string, number>>(`${base}/languages`),
-        github<GitHubRelease>(`${base}/releases/latest`).catch((error: unknown) => {
+        github<Record<string, number>>(`${base}/languages`, env),
+        github<GitHubRelease>(`${base}/releases/latest`, env).catch((error: unknown) => {
           if (error instanceof Error && error.message === "GitHub 404") return null;
           throw error;
         }),
-        github<GitHubTree>(`${base}/git/trees/${encodeURIComponent(target.default_branch)}?recursive=1`)
+        github<GitHubTree>(`${base}/git/trees/${encodeURIComponent(target.default_branch)}?recursive=1`, env)
       ]);
       const treeEntries = tree.tree || [];
       const selected = selectFiles(treeEntries);

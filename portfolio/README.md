@@ -8,7 +8,7 @@ Requires Node.js 26 or newer. The version is pinned in `.nvmrc` for local develo
 
 ## Deploy
 
-Run `npm run deploy` after logging in to Cloudflare. `wrangler.jsonc` contains the production KV namespace ID and cron schedule. For another Cloudflare account create a namespace and replace the ID. Never expose GitHub credentials in client code. The refresh uses unauthenticated public GitHub endpoints; GitHub rate limits can delay updates. Refresh failures are logged and existing project results are retained. The public refresh button reloads the shared snapshot; it does not start a scan.
+Run `npm run deploy` after logging in to Cloudflare. `wrangler.jsonc` contains the production KV namespace ID and cron schedule. For another Cloudflare account create a namespace and replace the ID. The Worker can use `GITHUB_TOKEN` as a Cloudflare secret or in `portfolio/.dev.vars` to raise GitHub API rate limits; without it, rate limits can delay scheduled updates. Keep the token server-side and never expose it in browser assets. Refresh failures are logged and existing project results are retained. The public refresh button reloads the shared snapshot; it does not start a scan.
 
 Repository metadata is public. Scans sample at most 25 source files and 1 MB per project; counts include non-empty comment lines and test declarations are estimates, not executed tests. Partial scans are marked. GitHub data can be stale during outages.
 
