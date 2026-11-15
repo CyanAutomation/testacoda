@@ -18,6 +18,7 @@ Use this skill for the scanner and the portfolio's separate metrics implementati
 
 - Describe source lines, test files, and test cases as estimates. The scanner reads a bounded sample; it does not run a repository's tests or establish code quality.
 - Keep each implementation's limits and counting semantics distinct. The root Worker uses `MAX_SOURCE_FILES` and `MAX_SOURCE_BYTES`; the portfolio has its own file selection and byte limit. Check the current code and configuration before documenting exact values.
+- The implementations intentionally differ in source selection and LOC counting: the portfolio excludes common generated/dependency directories and counts nonempty lines, while the root scanner uses its own extension list and skips lines matching its comment-prefix heuristic. Do not copy one implementation's filter or count rules into the other.
 - Check how the implementation measures bytes before calling a limit a byte limit. JavaScript string length is not UTF-8 byte length.
 - The root maturity score is a five-item checklist with equal weight for a README, license, test files, CI workflow, and published release. Explain changes to these signals and their weights in the docs.
 - Preserve partial-scan and truncation context in returned metrics. Do not present an incomplete sample as a complete repository inventory.
@@ -31,3 +32,5 @@ Use this skill for the scanner and the portfolio's separate metrics implementati
 4. Run the relevant tests from the repository root with `npm test`, and from `portfolio/` with `npm test` when that scanner is affected. Use the corresponding `npm run check` for a full project check.
 
 Keep tests deterministic: metric helper tests should use local source strings and mocked fetches, not GitHub or Cloudflare network services.
+
+The root API contract and scanner behavior are described in `docs/api.md` and `docs/metrics.md`; the portfolio's refresh cadence and display semantics are described in `portfolio/README.md`. Update the relevant documentation when implementation behavior changes.

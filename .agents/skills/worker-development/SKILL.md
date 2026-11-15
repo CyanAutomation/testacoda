@@ -30,4 +30,8 @@ Use `npm run dev` in the relevant package for local development. A scheduled ref
 - The portfolio refresh scans one selected project per scheduled run and preserves the previous snapshot when repository listing fails or unexpectedly returns no repositories. Keep these recovery behaviors intact when changing refresh logic.
 - Keep network access out of unit tests. Mock `fetch` and bindings for failure, retry, and cache behavior.
 
+For root API changes, read `docs/api.md` and `docs/metrics.md`: the API serves cached index and per-repository scan results, accepts `GET` and CORS preflight `OPTIONS`, and keeps scan results for up to three days. The scheduled handler refreshes the index and then queues scans when `SCANS` is configured; without it, scans run sequentially. The queue acknowledges successful work and retries failures.
+
+For portfolio changes, read `portfolio/README.md`: `/api/snapshot` serves the shared KV snapshot, while other requests are served as static assets. The scheduled refresh reloads the repo list and refreshes one project's metrics; the public UI refresh button only reloads its snapshot. Local KV starts empty, so local UI fallback data is not evidence that the scheduled refresh ran.
+
 Deploy with `npm run deploy` only when deployment is part of the user's request. Before deployment, run the relevant `npm run check` from the same package directory and confirm the target Worker's bindings and environment.
