@@ -21,6 +21,17 @@ test("source selection excludes dependencies and respects bounds", () => {
   assert.equal(result.partial, true);
 });
 
+test("source selection skips entries without finite sizes", () => {
+  const result = selectFiles([
+    { type: "blob", path: "src/unknown.js" },
+    { type: "blob", path: "src/not-a-number.js", size: Number.NaN },
+    { type: "blob", path: "src/valid.js", size: 12 }
+  ]);
+
+  assert.deepEqual(result.files.map((file) => file.path), ["src/valid.js"]);
+  assert.equal(result.partial, true);
+});
+
 test("source and estimated test declarations are counted", () => {
   assert.deepEqual(countSource('a\n\n test("x",()=>{})\n', true), { lines: 2, tests: 1 });
 });

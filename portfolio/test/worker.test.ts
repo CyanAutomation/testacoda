@@ -45,8 +45,13 @@ test("unexpected empty GitHub list preserves existing snapshot", async () => {
 test("snapshot stores the latest release publication date", async () => {
   const originalFetch = globalThis.fetch;
   let saved: { projects?: Record<string, { release?: string | null; releasePublishedAt?: string | null }> } | undefined;
-  globalThis.fetch = async (input) => {
-    const path = new URL(String(input)).pathname;
+  const authorizations: string[] = [];
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    if (url.hostname === "api.github.com") {
+      authorizations.push(new Headers(init?.headers).get("authorization") || "");
+    }
+    const path = url.pathname;
     if (path.endsWith("/users/CyanAutomation/repos")) {
       return Response.json([{
         name: "demo",
@@ -69,11 +74,14 @@ test("snapshot stores the latest release publication date", async () => {
       SNAPSHOTS: {
         get: async () => null,
         put: async (_key: string, value: string) => { saved = JSON.parse(value); }
-      }
+      },
+      GITHUB_TOKEN: "test-token"
     } as unknown as Env;
     await refresh(env);
     assert.equal(saved?.projects?.demo.release, "v1.2");
     assert.equal(saved?.projects?.demo.releasePublishedAt, "2025-12-03T10:30:00Z");
+    assert.ok(authorizations.length > 0);
+    assert.ok(authorizations.every((authorization) => authorization === "Bearer test-token"));
   } finally {
     globalThis.fetch = originalFetch;
   }

@@ -24,7 +24,7 @@ Use `npm run dev` in the relevant package for local development. A scheduled ref
 ## Bindings, credentials, and refresh behavior
 
 - Treat Wrangler configuration as environment-specific. Do not guess namespace IDs or replace production bindings to make a local check pass.
-- Keep GitHub credentials server-side. The API Worker can use `GITHUB_TOKEN` as a Worker secret or local `.dev.vars` value; never put it in portfolio assets, browser code, committed config, or logs.
+- Keep GitHub credentials server-side. Both Workers can use `GITHUB_TOKEN` as a Worker secret or local `.dev.vars` value; never put it in portfolio assets, browser code, committed config, or logs.
 - Keep `.dev.vars` private and use `.dev.vars.example` only as a template. Do not paste secret values into docs or test fixtures.
 - The API Worker batches scans through `SCANS` when that binding exists and otherwise scans sequentially. Its queue consumer acknowledges successful scans and retries failures.
 - The portfolio refresh scans one selected project per scheduled run and preserves the previous snapshot when repository listing fails or unexpectedly returns no repositories. Keep these recovery behaviors intact when changing refresh logic.
