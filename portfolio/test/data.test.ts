@@ -1,0 +1,95 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import {
+  countSource,
+  encodePath,
+  filterProjects,
+  formatReleaseDate,
+  isWebUrl,
+  loadSnapshot,
+  selectFiles
+} from "../src/data.ts";
+
+test("source selection excludes dependencies and respects bounds", () => {
+  const result = selectFiles([
+    { type: "blob", path: "src/a.js", size: 20 },
+    { type: "blob", path: "node_modules/a.js", size: 2 },
+    { type: "blob", path: "src/b.ts", size: 30 }
+  ], 1, 100);
+  assert.deepEqual(result.files.map((file) => file.path), ["src/a.js"]);
+  assert.equal(result.partial, true);
+});
+
+test("source selection skips entries without finite sizes", () => {
+  const result = selectFiles([
+    { type: "blob", path: "src/unknown.js" },
+    { type: "blob", path: "src/not-a-number.js", size: Number.NaN },
+    { type: "blob", path: "src/valid.js", size: 12 }
+  ]);
+
+  assert.deepEqual(result.files.map((file) => file.path), ["src/valid.js"]);
+  assert.equal(result.partial, true);
+});
+
+test("source and estimated test declarations are counted", () => {
+  assert.deepEqual(countSource('a\n\n test("x",()=>{})\n', true), { lines: 2, tests: 1 });
+});
+
+test("search and category filters compose", () => {
+  const projects = [
+    { name: "dojo", description: "judo tracker", category: "Judo" },
+    { name: "tool", category: "Tools" }
+  ];
+  assert.deepEqual(filterProjects(projects, "TRACK", "Judo").map((repo) => repo.name), ["dojo"]);
+  assert.equal(filterProjects(projects, "track", "Tools").length, 0);
+});
+
+test("screenshot paths are encoded one segment at a time", () => {
+  assert.equal(encodePath('screenshots/"a#b? c.png'), "screenshots/%22a%23b%3F%20c.png");
+});
+
+test("reports when both snapshot and bundled fallback fail", async () => {
+  const calls: string[] = [];
+  const fetcher = async (url: string): Promise<Response> => {
+    calls.push(url);
+    if (url === "/api/snapshot") return new Response("", { status: 503 });
+    throw new Error("offline");
+  };
+  const result = await loadSnapshot(fetcher, []);
+  assert.deepEqual(calls, ["/api/snapshot", "/repos.json"]);
+  assert.equal(result.repos.length, 0);
+  assert.match(result.message, /unavailable/i);
+  assert.equal(result.snapshot, null);
+});
+
+test("keeps existing data when snapshot refresh fails", async () => {
+  let calls = 0;
+  const existing = [{ name: "old" }];
+  const result = await loadSnapshot(async () => {
+    calls += 1;
+    throw new Error("offline");
+  }, existing);
+  assert.equal(calls, 1);
+  assert.deepEqual(result.repos, existing);
+  assert.match(result.message, /unavailable/i);
+});
+
+test("formats valid release dates and handles missing or invalid dates", () => {
+  assert.equal(formatReleaseDate("2025-12-03T10:30:00Z"), "3 Dec 2025");
+  assert.equal(formatReleaseDate(null), "");
+  assert.equal(formatReleaseDate("not-a-date"), "");
+});
+
+test("demo links accept only HTTP and HTTPS URLs", () => {
+  assert.equal(isWebUrl("https://gogomio.cloud.run"), true);
+  assert.equal(isWebUrl("http://example.test"), true);
+  assert.equal(isWebUrl("javascript:alert(1)"), false);
+  assert.equal(isWebUrl(null), false);
+});
+
+test("portfolio UI has no stars metric and labels its optional homepage link as a demo", async () => {
+  const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+  assert.doesNotMatch(html, /\bid="stars"|\bSTARS\b|\bid="updated"/);
+  assert.match(html, /<a id="live"[^>]*>Visit demo<\/a>/);
+});

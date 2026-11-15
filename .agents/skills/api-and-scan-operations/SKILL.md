@@ -9,9 +9,9 @@ This skill covers the root API Worker and its scan lifecycle. For metric definit
 
 ## Find the relevant code and contract
 
-- `src/index.js` implements HTTP routes, KV caching, scheduled refresh, and the queue consumer.
-- `src/github.js` wraps GitHub API requests and lists public repositories.
-- `src/metrics.js` scans repository trees and source files.
+- `src/index.ts` implements HTTP routes, KV caching, scheduled refresh, and the queue consumer.
+- `src/github.ts` wraps GitHub API requests and lists public repositories.
+- `src/metrics.ts` scans repository trees and source files.
 - `wrangler.jsonc` defines the `CACHE` KV binding, optional `SCANS` queue, owner, CORS origin, scan limits, and cron schedule.
 - `docs/api.md` documents endpoints and cache behavior; `docs/metrics.md` documents scan semantics.
 
@@ -30,6 +30,6 @@ This skill covers the root API Worker and its scan lifecycle. For metric definit
 1. Add or update focused tests for route methods, CORS, cache hit/miss behavior, pagination, scan enqueueing, queue ack/retry, and preservation of prior data on failures as relevant.
 2. Mock `fetch`, KV, and Queue bindings. Unit tests should not require GitHub credentials, network access, or production Cloudflare resources.
 3. Update `docs/api.md` for route or response changes and `docs/metrics.md` for scan behavior changes. Update `worker-development` if bindings or local operation steps change.
-4. Run `npm test` and `npm run check` from the repository root when verification is requested.
+4. Run `npm test` and `npm run check` from the repository root when verification is requested. The check includes strict TypeScript and generated Wrangler binding type validation.
 
 Use `workflow-security-review` for changes to GitHub Actions rather than expanding this skill to cover CI security.
