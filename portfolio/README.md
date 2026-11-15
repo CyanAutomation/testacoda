@@ -1,10 +1,10 @@
 # Project collection
 
-A Cloudflare Workers portfolio for CyanAutomation's public GitHub repositories. Static assets live in `public/`; the Worker in `src/worker.js` serves a shared KV snapshot at `/api/snapshot` and refreshes it daily at 00:00 UTC. Each run refreshes the repository list and scans one changed or oldest project. A complete metrics rotation therefore takes roughly one day per repository; for 18 repositories it takes about 18 days, and changed projects are prioritized. Failed refreshes preserve the last successful data. KV is eventually consistent.
+A Cloudflare Workers portfolio for CyanAutomation's public GitHub repositories. TypeScript source lives in `src/`; the Worker in `src/worker.ts` serves a shared KV snapshot at `/api/snapshot` and refreshes it daily at 00:00 UTC. The browser app is bundled from `src/app.ts` into `public/app.js`. The self-contained fallback in `portfolio-backup/index.html` is generated from `portfolio-backup/backup.ts`. Each refresh updates the repository list and scans one changed or oldest project. A complete metrics rotation therefore takes roughly one day per repository; for 18 repositories it takes about 18 days, and changed projects are prioritized. Failed refreshes preserve the last successful data. KV is eventually consistent.
 
 ## Develop and test
 
-Requires Node.js 26 or newer. The version is pinned in `.nvmrc` for local development and Cloudflare Workers Builds. Run `npm install`, `npm test`, and `npm run dev`. Local KV starts empty, so the UI shows the bundled fallback until you populate the local namespace or trigger the scheduled handler using Wrangler's local scheduled endpoint. `npm run check` runs tests, a syntax check and a deployment dry run.
+Requires Node.js 26 or newer. The version is pinned in `.nvmrc` for local development and Cloudflare Workers Builds. Run `npm install`, `npm test`, and `npm run dev`. The dev and deploy commands build the browser bundle and backup HTML first. Run `npm run typecheck` to check the Worker, browser, backup, and tests. `npm run check` builds, runs tests and type-checks, verifies the browser output, and runs a Wrangler deployment dry run. Local KV starts empty, so the UI shows the bundled fallback until you populate the local namespace or trigger the scheduled handler using Wrangler's local scheduled endpoint.
 
 ## Deploy
 

@@ -9,10 +9,10 @@ Use this skill for the scanner and the portfolio's separate metrics implementati
 
 ## Find the relevant code
 
-- The API scanner is in `src/github.js`, `src/metrics.js`, and `src/index.js`.
-- Its current tests are in `test/metrics.test.js`; API and metric descriptions are in `docs/api.md` and `docs/metrics.md`.
-- The portfolio scan helpers are in `portfolio/public/data.js` and are re-exported by `portfolio/src/data.js`; orchestration is in `portfolio/src/worker.js`.
-- Its tests are in `portfolio/test/data.test.js` and `portfolio/test/worker.test.js`; its operational and metric notes are in `portfolio/README.md`.
+- The API scanner is in `src/github.ts`, `src/metrics.ts`, and `src/index.ts`.
+- Its current tests are in `test/metrics.test.ts`; API and metric descriptions are in `docs/api.md` and `docs/metrics.md`.
+- The portfolio scan helpers are in `portfolio/src/data.ts`; orchestration is in `portfolio/src/worker.ts`.
+- Its tests are in `portfolio/test/data.test.ts` and `portfolio/test/worker.test.ts`; its operational and metric notes are in `portfolio/README.md`.
 
 ## Preserve metric meaning
 
