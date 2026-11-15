@@ -23,4 +23,6 @@ Review the full workflow and its event triggers in `.github/workflows/`, along w
 3. Check that the CI jobs still install dependencies from the correct package lock and run that package's `npm run check`.
 4. Keep CodeQL analysis permissions scoped to its analysis job and retain the current JavaScript/TypeScript coverage unless the repository language setup changes.
 
+When changing CI behavior, preserve both package checks: run `npm run check` from the repository root and from `portfolio/`. Keep Node versions aligned with each package's `.nvmrc` and use the matching lockfile for dependency installation. For pull request changes, consider `merge_group` as well as `pull_request` so required checks continue to work with merge queues.
+
 Do not add credentials, production deployment, or broad write permissions as a shortcut for a failing check. Identify the exact operation that needs access and scope its permission to that job or step.
