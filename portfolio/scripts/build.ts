@@ -1,5 +1,6 @@
 import { build } from "esbuild";
 import { readFile, writeFile } from "node:fs/promises";
+import { renderBackupHtml } from "./backup-build.ts";
 
 await build({
   entryPoints: ["src/app.ts"],
@@ -25,10 +26,5 @@ const backupScript = backupBundle.outputFiles[0]?.text;
 if (!backupScript) throw new Error("Backup TypeScript bundle was empty");
 
 const template = await readFile("../portfolio-backup/index.template.html", "utf8");
-const placeholder = "<!-- BACKUP_SCRIPT -->";
-if (template.split(placeholder).length !== 2) {
-  throw new Error("Backup HTML template must contain exactly one script placeholder");
-}
-const backupHtml = `<!-- Generated from index.template.html and backup.ts by npm run build. -->\n` +
-  template.replace(placeholder, `<script>\n${backupScript}\n  </script>`);
+const backupHtml = renderBackupHtml(template, backupScript);
 await writeFile("../portfolio-backup/index.html", backupHtml);
