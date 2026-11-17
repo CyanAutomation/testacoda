@@ -22,6 +22,7 @@ function makeEnvironment(values: Record<string, unknown> = {}): Env {
   } as unknown as Env;
 }
 
+// Contract: docs/test-contracts.md#api-health-01
 test("health endpoint returns JSON and the configured CORS origin", async () => {
   const response = await worker.fetch(
     new Request("https://worker.example/healthz"),
@@ -33,6 +34,7 @@ test("health endpoint returns JSON and the configured CORS origin", async () => 
   assert.deepEqual(await response.json(), { ok: true, service: "testacoda" });
 });
 
+// Contract: docs/test-contracts.md#api-repository-index-01
 test("repository index endpoint returns cached data and its latest scan time", async () => {
   const repositories = [
     { full_name: "CyanAutomation/demo", scan: { scanned_at: "2026-11-01T00:00:00.000Z" } },
@@ -53,6 +55,7 @@ test("repository index endpoint returns cached data and its latest scan time", a
   });
 });
 
+// Contract: docs/test-contracts.md#api-cors-01
 test("preflight requests advertise the configured CORS policy", async () => {
   const response = await worker.fetch(
     new Request("https://worker.example/v1/repos", { method: "OPTIONS" }),

@@ -20,7 +20,7 @@ These source counts are estimates. See docs/metrics.md for the scan limits and m
 3. Run npm run dev.
 4. The first index is populated by the daily scheduled handler. To test a refresh manually, use Wrangler's scheduled-event dev command.
 
-Set GITHUB_TOKEN as a Worker secret or in a local .dev.vars file to raise GitHub API rate limits. The token only needs public repository read access.
+Set GITHUB_TOKEN as a Worker secret or in a local .dev.vars file to raise GitHub API rate limits. The token only needs public repository read access and is sent with Bearer authentication; GitHub requests include the API media type and version headers.
 
 ## API
 
