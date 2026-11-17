@@ -28,3 +28,14 @@ test("checked-in backup HTML matches its template and TypeScript application bun
   assert.equal(checkedInHtml, renderBackupHtml(template, script));
   assert.doesNotMatch(checkedInHtml, /<script\b[^>]*\bsrc\s*=/i, "the backup must not load an external script");
 });
+
+// Contract: docs/test-contracts.md#portfolio-backup-01
+test("script terminators in the bundle are escaped inside the generated HTML", () => {
+  const html = renderBackupHtml("<!-- BACKUP_SCRIPT -->", "const payload = '</ScRiPt>';");
+
+  assert.equal(
+    html,
+    "<!-- Generated from index.template.html and backup.ts by npm run build. -->\n" +
+      "<script>\nconst payload = '<\\/ScRiPt>';\n  </script>"
+  );
+});

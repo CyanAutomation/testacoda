@@ -6,7 +6,7 @@ These stable IDs connect tests to documented product behavior. Tests reference t
 
 GitHub REST requests use the expected API headers and include the configured bearer token. Non-success responses preserve their HTTP status in the client error. See [local configuration](../README.md#run-locally).
 
-Covered by `test/github.test.ts`.
+Covered by `test/github.test.ts` and the portfolio refresh integration in `portfolio/test/worker.test.ts`.
 
 ## METRICS-CLASSIFICATION-01
 
@@ -106,6 +106,6 @@ Covered by `portfolio/test/worker.test.ts`.
 
 ## PORTFOLIO-BACKUP-01
 
-The checked-in backup page is a self-contained HTML artifact generated from `index.template.html` and `backup.ts`. See [backup build instructions](../portfolio-backup/README.md).
+The checked-in backup page is a self-contained HTML artifact generated from `index.template.html` and `backup.ts`. Bundled script text escapes closing script tags before embedding so it cannot terminate the HTML script element. See [backup build instructions](../portfolio-backup/README.md).
 
 Covered by `portfolio/test/backup.test.ts`.

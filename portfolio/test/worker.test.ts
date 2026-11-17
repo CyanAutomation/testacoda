@@ -62,8 +62,10 @@ for (const failure of listingFailures) {
 }
 
 // Contract: docs/test-contracts.md#portfolio-release-01
+// Contract: docs/test-contracts.md#github-client-01
 test("snapshot stores the latest release tag and publication date", async () => {
   let saved: { projects?: Record<string, { release?: string | null; releasePublishedAt?: string | null }> } | undefined;
+  const authorizations: string[] = [];
   const responses = new Map<string, Response>([
     ["api.github.com/users/CyanAutomation/repos", Response.json([{
       name: "demo",
@@ -80,8 +82,11 @@ test("snapshot stores the latest release tag and publication date", async () => 
     ["api.github.com/repos/CyanAutomation/demo/git/trees/main", Response.json({ sha: "abc", tree: [] })]
   ]);
 
-  await withMockedFetch(async (input) => {
+  await withMockedFetch(async (input, init) => {
     const url = new URL(String(input));
+    if (url.hostname === "api.github.com") {
+      authorizations.push(new Headers(init?.headers).get("authorization") || "");
+    }
     const response = responses.get(`${url.hostname}${url.pathname}`);
     if (!response) throw new Error(`Unexpected request ${String(input)}`);
     return response;
@@ -90,7 +95,8 @@ test("snapshot stores the latest release tag and publication date", async () => 
       SNAPSHOTS: {
         get: async () => null,
         put: async (_key: string, value: string) => { saved = JSON.parse(value); }
-      }
+      },
+      GITHUB_TOKEN: "test-token"
     } as unknown as Env;
 
     await refresh(env);
@@ -98,4 +104,6 @@ test("snapshot stores the latest release tag and publication date", async () => 
 
   assert.equal(saved?.projects?.demo.release, "v1.2");
   assert.equal(saved?.projects?.demo.releasePublishedAt, "2025-12-03T10:30:00Z");
+  assert.ok(authorizations.length > 0);
+  assert.ok(authorizations.every((authorization) => authorization === "Bearer test-token"));
 });
