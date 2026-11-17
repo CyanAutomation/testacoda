@@ -2,24 +2,29 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { countLinesOfCode, countTestCases, isSourceFile, isTestPath } from "../src/metrics.ts";
 
+// Contract: docs/test-contracts.md#metrics-classification-01
 test("recognizes source files without treating prose files as code", () => {
   assert.equal(isSourceFile("src/index.js"), true);
   assert.equal(isSourceFile("README.md"), false);
 });
 
+// Contract: docs/test-contracts.md#metrics-classification-01
 test("recognizes common test directory and file conventions", () => {
   assert.equal(isTestPath("test/scanner.test.js"), true);
   assert.equal(isTestPath("src/metrics.js"), false);
 });
 
+// Contract: docs/test-contracts.md#metrics-estimate-01
 test("counts nonblank, noncomment lines as an estimate", () => {
   assert.equal(countLinesOfCode("const x = 1;\n\n// note\nreturn x;\n"), 2);
 });
 
+// Contract: docs/test-contracts.md#metrics-test-count-01
 test("counts JavaScript test declarations", () => {
   assert.equal(countTestCases("test/example.test.js", "test('one', () => {});\nit('two', () => {});"), 2);
 });
 
+// Contract: docs/test-contracts.md#metrics-test-count-01
 test("counts synchronous and asynchronous Python test functions once", () => {
   const source = "def test_one():\n    pass\nasync def test_two():\n    pass\n";
   assert.equal(countTestCases("test_example.py", source), 2);

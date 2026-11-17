@@ -14,7 +14,15 @@ function formatReleaseDate(value) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
-var isWebUrl = (value) => typeof value === "string" && /^https?:\/\//i.test(value);
+var isWebUrl = (value) => {
+  if (typeof value !== "string" || !/^https?:\/\//i.test(value)) return false;
+  try {
+    const url = new URL(value);
+    return (url.protocol === "http:" || url.protocol === "https:") && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+};
 function isSnapshotResponse(value) {
   return typeof value === "object" && value !== null && Array.isArray(value.repos);
 }

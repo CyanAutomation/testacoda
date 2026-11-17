@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { githubJson, GitHubApiError } from "../src/github.ts";
 
+// Contract: docs/test-contracts.md#github-client-01
 test("GitHub requests include the configured token and expected API headers", async () => {
   const originalFetch = globalThis.fetch;
   const observed: { requestHeaders?: Headers } = {};
@@ -20,6 +21,7 @@ test("GitHub requests include the configured token and expected API headers", as
   }
 });
 
+// Contract: docs/test-contracts.md#github-client-01
 test("GitHub API errors retain their HTTP status", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response("rate limited", { status: 403 });

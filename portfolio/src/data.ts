@@ -105,8 +105,15 @@ export function formatReleaseDate(value: string | null | undefined): string {
     : date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export const isWebUrl = (value: unknown): value is string =>
-  typeof value === "string" && /^https?:\/\//i.test(value);
+export const isWebUrl = (value: unknown): value is string => {
+  if (typeof value !== "string" || !/^https?:\/\//i.test(value)) return false;
+  try {
+    const url = new URL(value);
+    return (url.protocol === "http:" || url.protocol === "https:") && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+};
 
 interface SnapshotResponse {
   repos: PortfolioRepository[];
