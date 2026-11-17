@@ -5,6 +5,7 @@ export function renderBackupHtml(template: string, script: string): string {
     throw new Error("Backup HTML template must contain exactly one script placeholder");
   }
 
+  const safeScript = script.replace(/<\/script>/gi, (endTag) => endTag.replace("/", "\\/"));
   return `<!-- Generated from index.template.html and backup.ts by npm run build. -->\n` +
-    template.replace(BACKUP_SCRIPT_PLACEHOLDER, `<script>\n${script}\n  </script>`);
+    template.replace(BACKUP_SCRIPT_PLACEHOLDER, "<script>\n" + safeScript + "\n  </script>");
 }
