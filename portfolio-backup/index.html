@@ -101,90 +101,157 @@
   <script>
 "use strict";
 (() => {
-  // ../portfolio-backup/backup.ts
-  function isRecord(value) {
-    return typeof value === "object" && value !== null;
-  }
-  function element(id) {
-    const found = document.getElementById(id);
-    if (!found) throw new Error(`Missing backup portfolio element #${id}`);
-    return found;
-  }
+  // src/backup-data.ts
   var OWNER = "CyanAutomation";
-  var API_BASE = window.TESTACODA_API_BASE || "";
-  var state = { projects: [], index: 0 };
+  function asRecord(value) {
+    return typeof value === "object" && value !== null ? value : void 0;
+  }
+  function firstString(...values) {
+    return values.find((value) => typeof value === "string");
+  }
+  function selectRepo(item, scan) {
+    const scannedRepo = asRecord(scan.repo);
+    return scannedRepo && typeof scannedRepo.full_name === "string" ? scannedRepo : item;
+  }
+  function selectMetrics(item, scan) {
+    return asRecord(scan.metrics) || asRecord(item.metrics) || {};
+  }
+  function selectMaturity(item, scan) {
+    return asRecord(scan.maturity) || asRecord(item.maturity) || {};
+  }
+  function projectLanguage(metrics, repo) {
+    const languages = asRecord(metrics.languages);
+    if (languages) return Object.keys(languages)[0] || (typeof repo.language === "string" ? repo.language : "\u2014");
+    return typeof repo.language === "string" ? repo.language : "\u2014";
+  }
+  function projectStars(repo) {
+    if (typeof repo.stars === "number" || typeof repo.stars === "string") return repo.stars;
+    return typeof repo.stargazers_count === "number" ? repo.stargazers_count : 0;
+  }
+  function projectRelease(metrics) {
+    const release = asRecord(metrics.latest_release);
+    return typeof release?.tag === "string" ? release.tag : "\u2014";
+  }
+  function projectMaturity(maturity) {
+    if (typeof maturity.label === "string") return maturity.label;
+    return typeof maturity.score === "number" ? `${maturity.score}%` : "Not scanned";
+  }
   function compact(value) {
     const number = Number(value || 0);
     return number >= 1e6 ? `${(number / 1e6).toFixed(1)}m` : number >= 1e3 ? `${(number / 1e3).toFixed(1)}k` : String(number);
   }
   function projectShape(value) {
-    const item = isRecord(value) ? value : {};
-    const scan = isRecord(item.scan) ? item.scan : item;
-    const repo = isRecord(scan.repo) && typeof scan.repo.full_name === "string" ? scan.repo : item;
-    const metrics = isRecord(scan.metrics) ? scan.metrics : isRecord(item.metrics) ? item.metrics : {};
-    const maturity = isRecord(scan.maturity) ? scan.maturity : isRecord(item.maturity) ? item.maturity : {};
-    const fullName = typeof repo.full_name === "string" ? repo.full_name : typeof item.full_name === "string" ? item.full_name : "";
+    const item = asRecord(value) || {};
+    const scan = asRecord(item.scan) || item;
+    const repo = selectRepo(item, scan);
+    const metrics = selectMetrics(item, scan);
+    const maturity = selectMaturity(item, scan);
+    const fullName = firstString(repo.full_name, item.full_name) || "";
     const rawName = typeof repo.name === "string" ? repo.name : fullName.split("/").pop();
-    const release = isRecord(metrics.latest_release) ? metrics.latest_release : null;
-    const score = typeof maturity.score === "number" ? maturity.score : void 0;
+    const name = rawName || "Repository";
+    const url = firstString(repo.html_url);
+    const rawLoc = metrics.lines_of_code;
+    const rawTests = metrics.test_cases_estimate;
     return {
-      name: rawName || "Repository",
+      name,
       fullName,
       description: typeof repo.description === "string" ? repo.description : "A public project by CyanAutomation.",
-      url: typeof repo.html_url === "string" && /^https?:\/\//i.test(repo.html_url) ? repo.html_url : `https://github.com/${OWNER}`,
-      language: isRecord(metrics.languages) ? Object.keys(metrics.languages)[0] || (typeof repo.language === "string" ? repo.language : "\u2014") : typeof repo.language === "string" ? repo.language : "\u2014",
-      stars: typeof repo.stars === "number" || typeof repo.stars === "string" ? repo.stars : typeof repo.stargazers_count === "number" ? repo.stargazers_count : 0,
-      loc: typeof metrics.lines_of_code === "number" ? metrics.lines_of_code : void 0,
-      tests: typeof metrics.test_cases_estimate === "number" ? metrics.test_cases_estimate : void 0,
-      release: typeof release?.tag === "string" ? release.tag : "\u2014",
-      maturity: typeof maturity.label === "string" ? maturity.label : score === void 0 ? "Not scanned" : `${score}%`,
-      updated: typeof repo.pushed_at === "string" ? repo.pushed_at : typeof repo.updated_at === "string" ? repo.updated_at : ""
+      url: url && /^https?:\/\//i.test(url) ? url : `https://github.com/${OWNER}`,
+      language: projectLanguage(metrics, repo),
+      stars: projectStars(repo),
+      loc: typeof rawLoc === "number" ? rawLoc : void 0,
+      tests: typeof rawTests === "number" ? rawTests : void 0,
+      release: projectRelease(metrics),
+      maturity: projectMaturity(maturity),
+      updated: firstString(repo.pushed_at, repo.updated_at) || ""
     };
   }
-  async function loadProjects() {
-    if (API_BASE) {
-      try {
-        const response2 = await fetch(`${API_BASE.replace(/\/$/, "")}/v1/repos?owner=${encodeURIComponent(OWNER)}`);
-        if (!response2.ok) throw new Error("Testacoda unavailable");
-        const data = await response2.json();
-        if (isRecord(data) && Array.isArray(data.repositories) && data.repositories.length) {
-          return data.repositories.map(projectShape);
-        }
-      } catch {
-        element("status").textContent = "Using GitHub fallback";
-      }
+  function backupPresentation(project, index, total) {
+    const stars = compact(project.stars);
+    return {
+      counter: `${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`,
+      name: project.name,
+      description: project.description,
+      previewLabel: project.fullName || project.name,
+      stars,
+      language: project.language,
+      maturity: project.maturity,
+      loc: project.loc === void 0 ? "\u2014" : compact(project.loc),
+      tests: project.tests === void 0 ? "\u2014" : compact(project.tests),
+      release: project.release || "\u2014",
+      updated: project.updated ? new Date(project.updated).toLocaleDateString() : "\u2014",
+      url: project.url,
+      chips: [project.language, `${stars} stars`, project.maturity],
+      position: project.fullName || "Public GitHub project",
+      progress: `${(index + 1) * 100 / total}%`
+    };
+  }
+  async function fetchTestacodaProjects(apiBase, fetcher, onServiceUnavailable) {
+    if (!apiBase) return null;
+    try {
+      const response = await fetcher(`${apiBase.replace(/\/$/, "")}/v1/repos?owner=${encodeURIComponent(OWNER)}`);
+      if (!response.ok) throw new Error("Testacoda unavailable");
+      const data = await response.json();
+      if (isRepositoryList(data)) return data.repositories.map(projectShape);
+    } catch {
+      onServiceUnavailable();
     }
-    const response = await fetch(`https://api.github.com/users/${OWNER}/repos?type=public&sort=updated&per_page=100`);
+    return null;
+  }
+  function isRepositoryList(value) {
+    const data = asRecord(value);
+    return Boolean(data && Array.isArray(data.repositories) && data.repositories.length);
+  }
+  async function fetchGitHubProjects(fetcher) {
+    const response = await fetcher(`https://api.github.com/users/${OWNER}/repos?type=public&sort=updated&per_page=100`);
     if (!response.ok) throw new Error("Could not load public GitHub repositories");
     const result = await response.json();
     if (!Array.isArray(result)) throw new Error("Could not load public GitHub repositories");
-    return result.filter((repo) => isRecord(repo) && !repo.private).map(projectShape);
+    return result.filter((repo) => {
+      const record = asRecord(repo);
+      return record && !record.private;
+    }).map(projectShape);
   }
+  async function loadProjects(apiBase, fetcher = fetch, onServiceUnavailable = () => {
+  }) {
+    const sharedProjects = await fetchTestacodaProjects(apiBase, fetcher, onServiceUnavailable);
+    return sharedProjects || await fetchGitHubProjects(fetcher);
+  }
+
+  // ../portfolio-backup/backup.ts
+  function element(id) {
+    const found = document.getElementById(id);
+    if (!found) throw new Error(`Missing backup portfolio element #${id}`);
+    return found;
+  }
+  var API_BASE = window.TESTACODA_API_BASE || "";
+  var state = { projects: [], index: 0 };
   function render() {
     const project = state.projects[state.index];
     if (!project) return;
-    element("counter").textContent = `${String(state.index + 1).padStart(2, "0")} / ${String(state.projects.length).padStart(2, "0")}`;
-    element("name").textContent = project.name;
-    element("description").textContent = project.description;
-    element("preview-label").textContent = project.fullName || project.name;
-    element("preview-stars").textContent = compact(project.stars);
-    element("preview-language").textContent = project.language;
-    element("preview-health").textContent = project.maturity;
-    element("loc").textContent = project.loc === void 0 ? "\u2014" : compact(project.loc);
-    element("tests").textContent = project.tests === void 0 ? "\u2014" : compact(project.tests);
-    element("release").textContent = project.release || "\u2014";
-    element("updated").textContent = project.updated ? new Date(project.updated).toLocaleDateString() : "\u2014";
-    element("repo-link").href = project.url;
+    const view = backupPresentation(project, state.index, state.projects.length);
+    element("counter").textContent = view.counter;
+    element("name").textContent = view.name;
+    element("description").textContent = view.description;
+    element("preview-label").textContent = view.previewLabel;
+    element("preview-stars").textContent = view.stars;
+    element("preview-language").textContent = view.language;
+    element("preview-health").textContent = view.maturity;
+    element("loc").textContent = view.loc;
+    element("tests").textContent = view.tests;
+    element("release").textContent = view.release;
+    element("updated").textContent = view.updated;
+    element("repo-link").href = view.url;
     const chips = element("chips");
     chips.innerHTML = "";
-    [project.language, `${compact(project.stars)} stars`, project.maturity].forEach((text) => {
+    view.chips.forEach((text) => {
       const chip = document.createElement("span");
       chip.className = "chip";
       chip.textContent = text;
       chips.append(chip);
     });
-    element("position").textContent = project.fullName || "Public GitHub project";
-    element("progress").style.width = `${(state.index + 1) * 100 / state.projects.length}%`;
+    element("position").textContent = view.position;
+    element("progress").style.width = view.progress;
   }
   function move(delta) {
     if (!state.projects.length) return;
@@ -197,7 +264,9 @@
     if (event.key === "ArrowLeft") move(-1);
     if (event.key === "ArrowRight") move(1);
   });
-  void loadProjects().then((projects) => {
+  void loadProjects(API_BASE, fetch, () => {
+    element("status").textContent = "Using GitHub fallback";
+  }).then((projects) => {
     state.projects = projects;
     if (!projects.length) throw new Error("No public repositories were returned");
     element("status").textContent = API_BASE ? "GitHub + Testacoda" : "Live GitHub data";

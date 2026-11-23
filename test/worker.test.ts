@@ -66,3 +66,27 @@ test("preflight requests advertise the configured CORS policy", async () => {
   assert.equal(response.headers.get("access-control-allow-origin"), "https://client.example");
   assert.equal(response.headers.get("access-control-allow-methods"), "GET, OPTIONS");
 });
+
+test("unsupported methods return a JSON 405 response", async () => {
+  const response = await worker.fetch(
+    new Request("https://worker.example/healthz", { method: "POST" }),
+    makeEnvironment()
+  );
+
+  assert.equal(response.status, 405);
+  assert.equal(response.headers.get("access-control-allow-origin"), "https://client.example");
+  assert.deepEqual(await response.json(), { error: "Method not allowed" });
+});
+
+test("repository detail routes report a cache miss with the decoded full name", async () => {
+  const response = await worker.fetch(
+    new Request("https://worker.example/v1/repos/owner%20name/project"),
+    makeEnvironment()
+  );
+
+  assert.equal(response.status, 404);
+  assert.deepEqual(await response.json(), {
+    error: "No scan found",
+    repo: "owner name/project"
+  });
+});

@@ -77,44 +77,58 @@ async function refreshOwner(owner: string, env: Env): Promise<void> {
   }
 }
 
+function optionsResponse(origin: string): Response {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "access-control-allow-origin": origin,
+      "access-control-allow-methods": "GET, OPTIONS",
+      "access-control-allow-headers": "Content-Type",
+      "access-control-max-age": "86400"
+    }
+  });
+}
+
+async function repositoryIndexResponse(env: Env, owner: string, origin: string): Promise<Response> {
+  const repositories = await readRepoIndex(env, owner);
+  const scannedAt = repositories.reduce((latest, item) => {
+    const stamp = item.scan?.scanned_at;
+    return stamp && stamp > latest ? stamp : latest;
+  }, "");
+  return responseJson({ owner, scanned_at: scannedAt, repositories }, 200, origin);
+}
+
+async function repositoryScanResponse(env: Env, fullName: string, origin: string): Promise<Response> {
+  const result = await env.CACHE.get<RepositoryScan>(repoKey(fullName), "json");
+  return result
+    ? responseJson(result, 200, origin)
+    : responseJson({ error: "No scan found", repo: fullName }, 404, origin);
+}
+
+async function handleReadRequest(
+  url: URL,
+  env: Env,
+  owner: string,
+  origin: string
+): Promise<Response> {
+  if (url.pathname === "/healthz") return responseJson({ ok: true, service: "testacoda" }, 200, origin);
+  if (url.pathname === "/v1/repos") return await repositoryIndexResponse(env, owner, origin);
+
+  const match = url.pathname.match(/^\/v1\/repos\/([^/]+)\/([^/]+)$/);
+  if (match) {
+    const fullName = decodeURIComponent(match[1]) + "/" + decodeURIComponent(match[2]);
+    return await repositoryScanResponse(env, fullName, origin);
+  }
+  return responseJson({ error: "Not found" }, 404, origin);
+}
+
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const owner = url.searchParams.get("owner") || env.GITHUB_OWNER || "CyanAutomation";
   const origin = env.CORS_ORIGIN || "*";
-  if (request.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "access-control-allow-origin": origin,
-        "access-control-allow-methods": "GET, OPTIONS",
-        "access-control-allow-headers": "Content-Type",
-        "access-control-max-age": "86400"
-      }
-    });
-  }
+  if (request.method === "OPTIONS") return optionsResponse(origin);
   if (request.method !== "GET") return responseJson({ error: "Method not allowed" }, 405, origin);
-  if (url.pathname === "/healthz") return responseJson({ ok: true, service: "testacoda" }, 200, origin);
-
-  if (url.pathname === "/v1/repos") {
-    const repositories = await readRepoIndex(env, owner);
-    return responseJson({
-      owner,
-      scanned_at: repositories.reduce((latest, item) => {
-        const stamp = item.scan?.scanned_at;
-        return stamp && stamp > latest ? stamp : latest;
-      }, ""),
-      repositories
-    }, 200, origin);
-  }
-
-  const match = url.pathname.match(/^\/v1\/repos\/([^/]+)\/([^/]+)$/);
-  if (match) {
-    const fullName = `${decodeURIComponent(match[1])}/${decodeURIComponent(match[2])}`;
-    const result = await env.CACHE.get<RepositoryScan>(repoKey(fullName), "json");
-    if (!result) return responseJson({ error: "No scan found", repo: fullName }, 404, origin);
-    return responseJson(result, 200, origin);
-  }
-  return responseJson({ error: "Not found" }, 404, origin);
+  return await handleReadRequest(url, env, owner, origin);
 }
 
 export default {

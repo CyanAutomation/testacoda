@@ -132,6 +132,44 @@ async function fetchRawFile(owner: string, repo: string, branch: string, path: s
   return await response.text();
 }
 
+interface SourceFileMetrics {
+  bytesScanned: number;
+  filesScanned: number;
+  linesOfCode: number;
+  testCases: number;
+}
+
+type RawFileFetcher = typeof fetchRawFile;
+
+async function scanSourceFiles(
+  sourcePaths: string[],
+  repo: GitHubRepository,
+  maxFiles: number,
+  maxBytes: number,
+  fetchFile: RawFileFetcher = fetchRawFile
+): Promise<SourceFileMetrics> {
+  let bytesScanned = 0;
+  let filesScanned = 0;
+  let linesOfCode = 0;
+  let testCases = 0;
+
+  for (const path of sourcePaths.slice(0, maxFiles)) {
+    if (bytesScanned >= maxBytes) break;
+    try {
+      const text = await fetchFile(repo.owner.login, repo.name, repo.default_branch, path);
+      if (text === null || text.length > Math.min(250000, maxBytes - bytesScanned)) continue;
+      bytesScanned += text.length;
+      filesScanned += 1;
+      linesOfCode += countLinesOfCode(text);
+      if (isTestPath(path)) testCases += countTestCases(path, text);
+    } catch {
+      // A missing or rate-limited raw file should not fail the whole repository scan.
+    }
+  }
+
+  return { bytesScanned, filesScanned, linesOfCode, testCases };
+}
+
 export async function scanRepository(
   repo: GitHubRepository,
   env: ScanEnvironment = {}
@@ -151,28 +189,7 @@ export async function scanRepository(
   const testPaths = sourcePaths.filter(isTestPath);
   const maxFiles = Math.max(1, Number(env.MAX_SOURCE_FILES) || 40);
   const maxBytes = Math.max(100000, Number(env.MAX_SOURCE_BYTES) || 1500000);
-  let bytesScanned = 0;
-  let filesScanned = 0;
-  let linesOfCode = 0;
-  let testCases = 0;
-  let testFilesScanned = 0;
-
-  for (const path of sourcePaths.slice(0, maxFiles)) {
-    if (bytesScanned >= maxBytes) break;
-    try {
-      const text = await fetchRawFile(repo.owner.login, repo.name, repo.default_branch, path);
-      if (text === null || text.length > Math.min(250000, maxBytes - bytesScanned)) continue;
-      bytesScanned += text.length;
-      filesScanned += 1;
-      linesOfCode += countLinesOfCode(text);
-      if (isTestPath(path)) {
-        testFilesScanned += 1;
-        testCases += countTestCases(path, text);
-      }
-    } catch {
-      // A missing or rate-limited raw file should not fail the whole repository scan.
-    }
-  }
+  const sourceMetrics = await scanSourceFiles(sourcePaths, repo, maxFiles, maxBytes);
 
   const latestRelease: LatestRelease | null = release?.tag_name
     ? { tag: release.tag_name, name: release.name || release.tag_name, url: release.html_url }
@@ -193,13 +210,13 @@ export async function scanRepository(
     },
     metrics: {
       languages,
-      lines_of_code: linesOfCode,
+      lines_of_code: sourceMetrics.linesOfCode,
       lines_of_code_is_estimate: true,
       source_files_total: sourcePaths.length,
-      source_files_scanned: filesScanned,
-      bytes_scanned: bytesScanned,
+      source_files_scanned: sourceMetrics.filesScanned,
+      bytes_scanned: sourceMetrics.bytesScanned,
       test_suites_estimate: testPaths.length,
-      test_cases_estimate: testCases,
+      test_cases_estimate: sourceMetrics.testCases,
       test_cases_are_lower_bound: true,
       latest_release: latestRelease
     },
