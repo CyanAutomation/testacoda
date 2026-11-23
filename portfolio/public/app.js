@@ -65,6 +65,111 @@ async function loadSnapshot(fetcher, existing = []) {
   }
 }
 
+// src/presentation.ts
+var languageColors = ["#ff6437", "#679ec7", "#bacb60", "#8a7aca", "#62bba6", "#dfa667"];
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[character] || character);
+}
+function screenshotPath(repoName, tree) {
+  if (!tree?.sha) return void 0;
+  if (repoName === "judokon") {
+    return tree.tree?.find((file) => file.path.endsWith("/homepage-linux.png"))?.path;
+  }
+  if (repoName === "motioninocean") {
+    return tree.tree?.find((file) => file.path === "screenshots/live-desktop-stream.png")?.path;
+  }
+  return void 0;
+}
+function diagramMarkup(repo, tree) {
+  const files = (tree?.tree || []).filter((file) => file.type === "blob");
+  const directories = [...new Set(files.map((file) => file.path.split("/")[0]).filter((path) => !path.startsWith(".") && !path.includes(".")))].slice(0, 4);
+  const displayDirectories = directories.length ? directories : ["Source files", "Documentation"];
+  return `<div class="diagram"><div class="diagram-head">repository:// ${escapeHtml(repo.name)}</div><div class="node feature"><span>${escapeHtml(repo.name)}</span><small>${escapeHtml(repo.language || "SOURCE")}</small></div><div class="connector"></div><div class="branches">${displayDirectories.map((directory) => `<div class="node"><span>${escapeHtml(directory)}/</span></div>`).join("")}</div><div class="code-list">${files.filter((file) => isSource(file.path)).slice(0, 4).map((file) => `<div><span>\u21B3</span> ${escapeHtml(file.path)}</div>`).join("")}</div></div>`;
+}
+function screenshotMarkup(repoName, sha, path) {
+  return `<div class="screenshot-wrap"><div class="windowbar"><i></i><i></i><i></i><span>${escapeHtml(repoName)}</span></div><img src="https://raw.githubusercontent.com/CyanAutomation/${encodeURIComponent(repoName)}/${encodeURIComponent(sha)}/${encodePath(path)}" alt="${escapeHtml(repoName)} app screenshot from its repository"></div>`;
+}
+function visualMarkup(repo, tree, index2) {
+  const image = screenshotPath(repo.name, tree);
+  const content = image && tree?.sha ? screenshotMarkup(repo.name, tree.sha, image) : diagramMarkup(repo, tree);
+  const mode = image ? "REPOSITORY SCREENSHOT" : "PROJECT STRUCTURE";
+  const branch = escapeHtml(repo.default_branch || "main");
+  const name = escapeHtml(repo.full_name || `CyanAutomation/${repo.name}`);
+  return `<div class="visual-caption"><span>${mode}</span><span>${branch}</span></div>` + content + `<div class="visual-caption"><span>${name}</span><span>OPEN SOURCE</span></div><span class="visual-index" aria-hidden="true">${String(index2 + 1).padStart(2, "0")}</span>`;
+}
+function repositoryPresentation(repo, index2, total, fallbackCategory) {
+  const liveUrl = isWebUrl(repo.homepage) ? repo.homepage : void 0;
+  return {
+    category: repo.category || fallbackCategory || "SOFTWARE / EXPERIMENTS",
+    position: String(index2 + 1).padStart(2, "0") + " / " + String(total).padStart(2, "0"),
+    title: repo.name,
+    description: repo.description || "A public software project by CyanAutomation.",
+    archived: repo.archived ? " / ARCHIVED" : "",
+    topics: (repo.topics || []).slice(0, 4).map((topic) => "<span>" + escapeHtml(topic) + "</span>").join(""),
+    sourceUrl: repo.html_url || "https://github.com/CyanAutomation/" + encodeURIComponent(repo.name),
+    liveHidden: !liveUrl,
+    liveUrl
+  };
+}
+function languagePresentation(languages, repo) {
+  const entries = Object.entries(languages || {}).sort((a, b) => b[1] - a[1]);
+  if (!entries.length && repo.language) entries.push([repo.language, 1]);
+  const total = entries.reduce((sum, entry) => sum + entry[1], 0);
+  const bar = entries.map(
+    ([name, value], index2) => '<span style="width:' + (total ? value / total * 100 : 0) + "%;background:" + languageColors[index2 % languageColors.length] + '" title="' + escapeHtml(name) + '"></span>'
+  ).join("");
+  const list = entries.map(
+    ([name, value], index2) => '<span><i style="background:' + languageColors[index2 % languageColors.length] + '"></i>' + escapeHtml(name) + " " + (languages && total ? (value / total * 100).toFixed(1) + "%" : "") + "</span>"
+  ).join("");
+  return { bar, list, note: languages ? "BY SOURCE BYTES" : "" };
+}
+function keyboardDirection(key, targetTagName) {
+  if (["INPUT", "TEXTAREA", "SELECT"].includes((targetTagName || "").toUpperCase())) return 0;
+  if (key === "ArrowLeft") return -1;
+  if (key === "ArrowRight") return 1;
+  return 0;
+}
+function swipeDirection(start, end) {
+  if (!start || !end) return 0;
+  const deltaX = end[0] - start[0];
+  const deltaY = end[1] - start[1];
+  if (Math.abs(deltaX) <= 70 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.5) return 0;
+  return deltaX > 0 ? -1 : 1;
+}
+function formatCount(value, partial) {
+  return value == null ? "\u2014" : value.toLocaleString() + (partial ? "+" : "");
+}
+function releaseName(metrics) {
+  return metrics.release || (metrics.noRelease ? "None published" : "\u2014");
+}
+function releaseNote(metrics) {
+  if (metrics.release) return formatReleaseDate(metrics.releasePublishedAt) || "Release date unavailable";
+  return metrics.noRelease ? "No GitHub release" : "Release unavailable";
+}
+function metricStatus(metrics, now) {
+  return metrics.errors?.join(" ") || `Measured ${new Date(metrics.time || now).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} \xB7 non-empty source lines; test declarations are estimated.`;
+}
+function metricsPresentation(metrics, now = Date.now()) {
+  return {
+    loc: formatCount(metrics.loc, metrics.partial),
+    locNote: metrics.loc == null ? "Measurement unavailable" : `${metrics.partial ? "Partial scan \xB7 " : ""}${metrics.scanned || 0} source files`,
+    tests: formatCount(metrics.tests, metrics.partial),
+    testNote: metrics.testfiles == null ? "Source scan estimate" : `${metrics.testfiles} test files \xB7 estimate`,
+    release: releaseName(metrics),
+    releaseNote: releaseNote(metrics),
+    status: metricStatus(metrics, now)
+  };
+}
+function diagramFallbackMarkup(repo, tree) {
+  return diagramMarkup(repo, tree);
+}
+
 // src/app.ts
 var OWNER = "CyanAutomation";
 var priority = [
@@ -91,13 +196,12 @@ var groups = {
   gogomio: "HARDWARE / CAMERA STREAMING",
   motioninocean: "HARDWARE / CAMERA STREAMING"
 };
-var colors = ["#ff6437", "#679ec7", "#bacb60", "#8a7aca", "#62bba6", "#dfa667"];
 var $ = (id) => {
   const element = document.getElementById(id);
   if (!element) throw new Error(`Missing portfolio element #${id}`);
   return element;
 };
-var escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
+var escapeHtml2 = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
   "&": "&amp;",
   "<": "&lt;",
   ">": "&gt;",
@@ -120,61 +224,39 @@ function sort(list) {
 }
 function paintNav() {
   $("project-nav").innerHTML = repos.map(
-    (repo, i) => `<button data-index="${i}" class="${i === index ? "active" : ""}" aria-current="${i === index ? "true" : "false"}"><small>${String(i + 1).padStart(2, "0")}</small>${escapeHtml(repo.name)}</button>`
+    (repo, i) => `<button data-index="${i}" class="${i === index ? "active" : ""}" aria-current="${i === index ? "true" : "false"}"><small>${String(i + 1).padStart(2, "0")}</small>${escapeHtml2(repo.name)}</button>`
   ).join("");
   $("total").textContent = `${repos.length} PUBLIC REPOSITORIES`;
 }
-function diagram(repo, tree) {
-  const files = (tree?.tree || []).filter((file) => file.type === "blob");
-  let directories = [...new Set(files.map((file) => file.path.split("/")[0]).filter((path) => !path.startsWith(".") && !path.includes(".")))].slice(0, 4);
-  if (!directories.length) directories = ["Source files", "Documentation"];
-  return `<div class="diagram"><div class="diagram-head">repository:// ${escapeHtml(repo.name)}</div><div class="node feature"><span>${escapeHtml(repo.name)}</span><small>${escapeHtml(repo.language || "SOURCE")}</small></div><div class="connector"></div><div class="branches">${directories.map((directory) => `<div class="node"><span>${escapeHtml(directory)}/</span></div>`).join("")}</div><div class="code-list">${files.filter((file) => isSource(file.path)).slice(0, 4).map((file) => `<div><span>\u21B3</span> ${escapeHtml(file.path)}</div>`).join("")}</div></div>`;
-}
 function visual(repo) {
-  let image;
   const tree = trees[repo.name];
-  if (tree?.sha && repo.name === "judokon") {
-    image = tree.tree?.find((file) => file.path.endsWith("/homepage-linux.png"))?.path;
-  }
-  if (tree?.sha && repo.name === "motioninocean") {
-    image = tree.tree?.find((file) => file.path === "screenshots/live-desktop-stream.png")?.path;
-  }
-  const branch = repo.default_branch || "main";
-  $("visual").innerHTML = `<div class="visual-caption"><span>${image ? "REPOSITORY SCREENSHOT" : "PROJECT STRUCTURE"}</span><span>${escapeHtml(branch)}</span></div>` + (image ? `<div class="screenshot-wrap"><div class="windowbar"><i></i><i></i><i></i><span>${escapeHtml(repo.name)}</span></div><img src="https://raw.githubusercontent.com/${OWNER}/${encodeURIComponent(repo.name)}/${encodeURIComponent(tree?.sha || "")}/${encodePath(image)}" alt="${escapeHtml(repo.name)} app screenshot from its repository"></div>` : diagram(repo, tree)) + `<div class="visual-caption"><span>${escapeHtml(repo.full_name || `${OWNER}/${repo.name}`)}</span><span>OPEN SOURCE</span></div><span class="visual-index" aria-hidden="true">${String(index + 1).padStart(2, "0")}</span>`;
+  $("visual").innerHTML = visualMarkup(repo, tree, index);
   const imageElement = $("visual").querySelector("img");
   if (imageElement) {
     imageElement.onerror = () => {
       const wrapper = imageElement.closest(".screenshot-wrap");
-      if (wrapper) wrapper.outerHTML = diagram(repo, tree);
+      if (wrapper) wrapper.outerHTML = diagramFallbackMarkup(repo, tree);
       const caption = $("visual").querySelector(".visual-caption span");
       if (caption) caption.textContent = "PROJECT STRUCTURE";
     };
   }
 }
 function languagePaint(languages, repo) {
-  let entries = Object.entries(languages || {}).sort((a, b) => b[1] - a[1]);
-  let total = entries.reduce((sum, entry) => sum + entry[1], 0);
-  if (!entries.length && repo.language) {
-    entries = [[repo.language, 1]];
-    total = 1;
-  }
-  $("language-bar").innerHTML = entries.map(
-    ([name, value], i) => `<span style="width:${total ? value / total * 100 : 0}%;background:${colors[i % colors.length]}" title="${escapeHtml(name)}"></span>`
-  ).join("");
-  $("language-list").innerHTML = entries.map(
-    ([name, value], i) => `<span><i style="background:${colors[i % colors.length]}"></i>${escapeHtml(name)} ${languages && total ? `${(value / total * 100).toFixed(1)}%` : ""}</span>`
-  ).join("");
-  $("langnote").textContent = languages ? "BY SOURCE BYTES" : "";
+  const presentation = languagePresentation(languages, repo);
+  $("language-bar").innerHTML = presentation.bar;
+  $("language-list").innerHTML = presentation.list;
+  $("langnote").textContent = presentation.note;
 }
 function showMetrics(metrics, repo) {
-  $("loc").textContent = metrics.loc == null ? "\u2014" : metrics.loc.toLocaleString() + (metrics.partial ? "+" : "");
-  $("locnote").textContent = metrics.loc == null ? "Measurement unavailable" : (metrics.partial ? "Partial scan \xB7 " : "") + `${metrics.scanned || 0} source files`;
-  $("tests").textContent = metrics.tests == null ? "\u2014" : metrics.tests.toLocaleString() + (metrics.partial ? "+" : "");
-  $("testnote").textContent = metrics.testfiles == null ? "Source scan estimate" : `${metrics.testfiles} test files \xB7 estimate`;
-  $("release").textContent = metrics.release || (metrics.noRelease ? "None published" : "\u2014");
-  $("releasenote").textContent = metrics.release ? formatReleaseDate(metrics.releasePublishedAt) || "Release date unavailable" : metrics.noRelease ? "No GitHub release" : "Release unavailable";
+  const presentation = metricsPresentation(metrics);
+  $("loc").textContent = presentation.loc;
+  $("locnote").textContent = presentation.locNote;
+  $("tests").textContent = presentation.tests;
+  $("testnote").textContent = presentation.testNote;
+  $("release").textContent = presentation.release;
+  $("releasenote").textContent = presentation.releaseNote;
   languagePaint(metrics.languages, repo);
-  $("metricstatus").textContent = metrics.errors?.join(" ") || `Measured ${new Date(metrics.time || Date.now()).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} \xB7 non-empty source lines; test declarations are estimated.`;
+  $("metricstatus").textContent = presentation.status;
 }
 async function getMetrics(repo) {
   const metrics = snapshot?.projects?.[repo.name];
@@ -201,19 +283,37 @@ async function render() {
   }
   const renderSerial = ++serial;
   const repo = repos[index];
-  paintNav();
-  $("category").textContent = repo.category || groups[repo.name] || "SOFTWARE / EXPERIMENTS";
-  $("position").textContent = `${String(index + 1).padStart(2, "0")} / ${String(repos.length).padStart(2, "0")}`;
-  $("title").textContent = repo.name;
-  $("description").textContent = repo.description || "A public software project by CyanAutomation.";
-  $("archived").textContent = repo.archived ? " / ARCHIVED" : "";
-  $("topics").innerHTML = (repo.topics || []).slice(0, 4).map((topic) => `<span>${escapeHtml(topic)}</span>`).join("");
-  $("source").setAttribute("href", repo.html_url || `https://github.com/${OWNER}/${encodeURIComponent(repo.name)}`);
-  const live = $("live");
-  live.hidden = !isWebUrl(repo.homepage);
-  if (isWebUrl(repo.homepage)) live.setAttribute("href", repo.homepage);
+  paintRepository(repo);
+  showMetricsLoading();
+  const metrics = await getMetrics(repo);
+  if (renderSerial === serial) {
+    showMetrics(metrics, repo);
+    visual(repo);
+  }
+}
+function paintRepository(repo) {
+  const presentation = repositoryPresentation(repo, index, repos.length, groups[repo.name]);
+  paintRepositoryDetails(presentation);
+  paintRepositoryLinks(presentation);
   visual(repo);
   languagePaint(null, repo);
+}
+function paintRepositoryDetails(presentation) {
+  paintNav();
+  $("category").textContent = presentation.category;
+  $("position").textContent = presentation.position;
+  $("title").textContent = presentation.title;
+  $("description").textContent = presentation.description;
+  $("archived").textContent = presentation.archived;
+  $("topics").innerHTML = presentation.topics;
+}
+function paintRepositoryLinks(presentation) {
+  $("source").setAttribute("href", presentation.sourceUrl);
+  const live = $("live");
+  live.hidden = presentation.liveHidden;
+  if (presentation.liveUrl) live.setAttribute("href", presentation.liveUrl);
+}
+function showMetricsLoading() {
   $("loc").textContent = "\u2014";
   $("tests").textContent = "\u2014";
   $("release").textContent = "\u2014";
@@ -221,11 +321,6 @@ async function render() {
   $("testnote").textContent = "Scanning declarations\u2026";
   $("releasenote").textContent = "Checking GitHub";
   $("metricstatus").textContent = "Loading shared project metrics\u2026";
-  const metrics = await getMetrics(repo);
-  if (renderSerial === serial) {
-    showMetrics(metrics, repo);
-    visual(repo);
-  }
 }
 function move(delta) {
   if (!repos.length) return;
@@ -234,23 +329,23 @@ function move(delta) {
 }
 $("prev").onclick = () => move(-1);
 $("next").onclick = () => move(1);
-$("project-nav").onclick = (event) => {
-  if (!(event.target instanceof Element)) return;
+function selectProjectFromEvent(event) {
+  if (!(event.target instanceof Element)) return false;
   const button = event.target.closest("button[data-index]");
-  if (!button) return;
+  if (!button) return false;
   index = Number(button.dataset.index);
   void render();
+  return true;
+}
+$("project-nav").onclick = (event) => {
+  selectProjectFromEvent(event);
 };
 document.addEventListener("keydown", (event) => {
-  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return;
-  if (event.key === "ArrowLeft") {
-    event.preventDefault();
-    move(-1);
-  }
-  if (event.key === "ArrowRight") {
-    event.preventDefault();
-    move(1);
-  }
+  const targetTag = event.target instanceof Element ? event.target.tagName : void 0;
+  const direction = keyboardDirection(event.key, targetTag);
+  if (!direction) return;
+  event.preventDefault();
+  move(direction);
 });
 $("stage").addEventListener("touchstart", (event) => {
   const touchEvent = event;
@@ -261,14 +356,13 @@ $("stage").addEventListener("touchend", (event) => {
   const touchEvent = event;
   const firstTouch = touchEvent.changedTouches[0];
   if (!touch || !firstTouch) return;
-  const deltaX = firstTouch.clientX - touch[0];
-  const deltaY = firstTouch.clientY - touch[1];
-  if (Math.abs(deltaX) > 70 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) move(deltaX > 0 ? -1 : 1);
+  const direction = swipeDirection(touch, [firstTouch.clientX, firstTouch.clientY]);
+  if (direction) move(direction);
   touch = null;
 }, { passive: true });
 function paintGrid() {
   $("grid").innerHTML = repos.map(
-    (repo, i) => `<button class="project-card" data-index="${i}"><span>${escapeHtml(repo.category || "SOFTWARE / EXPERIMENTS")}</span><strong>${escapeHtml(repo.name)}</strong><p>${escapeHtml(repo.description || "A public software project by CyanAutomation.")}</p><small>View project \u2192</small></button>`
+    (repo, i) => `<button class="project-card" data-index="${i}"><span>${escapeHtml2(repo.category || "SOFTWARE / EXPERIMENTS")}</span><strong>${escapeHtml2(repo.name)}</strong><p>${escapeHtml2(repo.description || "A public software project by CyanAutomation.")}</p><small>View project \u2192</small></button>`
   ).join("");
 }
 function applyFilters() {
@@ -283,12 +377,7 @@ function applyFilters() {
   if (repos.length) void render();
 }
 $("grid").onclick = (event) => {
-  if (!(event.target instanceof Element)) return;
-  const button = event.target.closest("button[data-index]");
-  if (!button) return;
-  index = Number(button.dataset.index);
-  void render();
-  $("gallery").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (selectProjectFromEvent(event)) $("gallery").scrollIntoView({ behavior: "smooth", block: "start" });
 };
 $("search").oninput = applyFilters;
 $("filter").onchange = applyFilters;
@@ -306,7 +395,7 @@ async function refresh() {
   } finally {
     const select = $("filter");
     const value = select.value;
-    select.innerHTML = '<option value="">All categories</option>' + [...new Set(allRepos.map((repo) => repo.category || "SOFTWARE / EXPERIMENTS"))].sort().map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("");
+    select.innerHTML = '<option value="">All categories</option>' + [...new Set(allRepos.map((repo) => repo.category || "SOFTWARE / EXPERIMENTS"))].sort().map((category) => `<option value="${escapeHtml2(category)}">${escapeHtml2(category)}</option>`).join("");
     select.value = value;
     applyFilters();
     refreshButton.disabled = false;

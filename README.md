@@ -25,7 +25,7 @@ Set GITHUB_TOKEN as a Worker secret or in a local .dev.vars file to raise GitHub
 ## API
 
 - GET /healthz
-- GET /v1/repos?owner=CyanAutomation
+- GET /v1/repos
 - GET /v1/repos/CyanAutomation/testacoda
 
 See docs/api.md for response details.

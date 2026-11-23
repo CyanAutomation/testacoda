@@ -8,11 +8,11 @@ The Worker exposes read-only JSON endpoints.
 
 ## Repository index
 
-`GET /v1/repos?owner=CyanAutomation` returns the latest public repository index. Each row includes GitHub repository metadata and the most recent scan under `scan`. Before the first daily scan, `scan` is null. The response's `scanned_at` field is the newest scan timestamp among the indexed repositories, or an empty string if none have been scanned.
+`GET /v1/repos` returns the latest public repository index for the owner configured by `GITHUB_OWNER`. Each row includes GitHub repository metadata and the most recent scan under `scan`. Before the first daily scan, `scan` is null. The response's `scanned_at` field is the newest scan timestamp among the indexed repositories, or an empty string if none have been scanned. The owner is fixed by Worker configuration; a query parameter cannot select another cache namespace.
 
 ## Repository scan
 
-`GET /v1/repos/:owner/:repo` returns one cached repository scan, or 404 if no scan has completed.
+`GET /v1/repos/:owner/:repo` returns one cached repository scan for the configured owner, or 404 if the owner does not match or no scan has completed.
 
 The response includes repository metadata, language byte counts, estimated lines of code, source files scanned, test file and test case estimates, latest release, maturity checks, and scan limits. LOC and test case figures are bounded estimates, not compiler or test runner results.
 

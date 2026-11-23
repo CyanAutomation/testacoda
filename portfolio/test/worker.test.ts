@@ -107,3 +107,66 @@ test("snapshot stores the latest release tag and publication date", async () => 
   assert.ok(authorizations.length > 0);
   assert.ok(authorizations.every((authorization) => authorization === "Bearer test-token"));
 });
+
+test("refresh scans the oldest changed project and retains other project metrics", async () => {
+  const repos = [
+    {
+      name: "unchanged",
+      full_name: "CyanAutomation/unchanged",
+      owner: { login: "CyanAutomation" },
+      pushed_at: "2026-01-01T00:00:00Z",
+      default_branch: "main"
+    },
+    {
+      name: "recent-change",
+      full_name: "CyanAutomation/recent-change",
+      owner: { login: "CyanAutomation" },
+      pushed_at: "2026-02-01T00:00:00Z",
+      default_branch: "main"
+    },
+    {
+      name: "old-change",
+      full_name: "CyanAutomation/old-change",
+      owner: { login: "CyanAutomation" },
+      pushed_at: "2026-03-01T00:00:00Z",
+      default_branch: "main"
+    }
+  ];
+  const previous = {
+    repos: [],
+    projects: {
+      unchanged: { pushed_at: "2026-01-01T00:00:00Z", time: 1, loc: 10 },
+      "recent-change": { pushed_at: "2026-01-15T00:00:00Z", time: 2, loc: 20 },
+      "old-change": { pushed_at: "2026-02-15T00:00:00Z", time: 0, loc: 30 }
+    }
+  };
+  let saved: { repos?: typeof repos; projects?: Record<string, { loc?: number; pushed_at?: string }> } | undefined;
+  const treeRequests: string[] = [];
+
+  await withMockedFetch(async (input) => {
+    const url = new URL(String(input));
+    if (url.hostname !== "api.github.com") throw new Error(`Unexpected request ${String(input)}`);
+    if (url.pathname.endsWith("/users/CyanAutomation/repos")) return Response.json(repos);
+    if (url.pathname.endsWith("/languages")) return Response.json({ TypeScript: 1 });
+    if (url.pathname.endsWith("/releases/latest")) return new Response("", { status: 404 });
+    if (url.pathname.includes("/git/trees/")) {
+      treeRequests.push(url.pathname);
+      return Response.json({ sha: "fresh", tree: [] });
+    }
+    throw new Error(`Unexpected request ${String(input)}`);
+  }, async () => {
+    const env = {
+      SNAPSHOTS: {
+        get: async () => previous,
+        put: async (_key: string, value: string) => { saved = JSON.parse(value); }
+      }
+    } as unknown as Env;
+
+    await refresh(env);
+  });
+
+  assert.deepEqual(treeRequests, ["/repos/CyanAutomation/old-change/git/trees/main"]);
+  assert.equal(saved?.projects?.unchanged.loc, 10);
+  assert.equal(saved?.projects?.["recent-change"].loc, 20);
+  assert.equal(saved?.projects?.["old-change"].pushed_at, "2026-03-01T00:00:00Z");
+});

@@ -1,0 +1,20 @@
+{
+  "entry": [
+    "portfolio/src/app.ts",
+    "portfolio-backup/backup.ts"
+  ],
+  "ignorePatterns": [
+    "**/worker-configuration.d.ts",
+    "portfolio-backup/index.html"
+  ],
+  "duplicates": {
+    "ignore": [
+      "**/worker-configuration.d.ts",
+      "portfolio/public/app.js",
+      "portfolio-backup/index.html"
+    ]
+  },
+  "health": {
+    "ignore": ["portfolio/public/app.js"]
+  }
+}
