@@ -59,7 +59,9 @@ test("visual markup selects and safely encodes the repository screenshot", () =>
   }, 1);
 
   assert.match(html, /REPOSITORY SCREENSHOT/);
-  assert.match(html, /https:\/\/raw\.githubusercontent\.com\/CyanAutomation\/judokon\/abc123\/screenshots\/homepage-linux\.png/);
+  assert.ok(html.includes(
+    "https://raw.githubusercontent.com/CyanAutomation/judokon/abc123/screenshots/homepage-linux.png"
+  ), "the generated screenshot URL should point at the selected file");
   assert.match(html, /aria-hidden="true">02/);
 });
 
@@ -74,7 +76,8 @@ test("visual markup escapes repository content in the project diagram", () => {
 
   assert.match(html, /repository:\/\/ &lt;script&gt;/);
   assert.match(html, /src\/&lt;module&gt;\.ts/);
-  assert.doesNotMatch(html, /<script>/);
+  assert.ok(html.includes("&lt;script&gt;"));
+  assert.equal(html.toLowerCase().includes("<script"), false);
 });
 
 test("repository presentation keeps unsafe demo URLs hidden and escapes topic labels", () => {

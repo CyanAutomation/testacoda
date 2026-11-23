@@ -43,7 +43,7 @@ test("repository index endpoint returns cached data and its latest scan time", a
   const env = makeEnvironment({ "index:cyanautomation": JSON.stringify(repositories) });
 
   const response = await worker.fetch(
-    new Request("https://worker.example/v1/repos?owner=CyanAutomation"),
+    new Request("https://worker.example/v1/repos"),
     env
   );
 
@@ -52,6 +52,27 @@ test("repository index endpoint returns cached data and its latest scan time", a
     owner: "CyanAutomation",
     scanned_at: "2026-11-02T00:00:00.000Z",
     repositories
+  });
+});
+
+test("repository index cannot be switched to a different owner through the query string", async () => {
+  const configuredRepositories = [{ full_name: "CyanAutomation/demo", scan: null }];
+  const otherRepositories = [{ full_name: "OtherOwner/private", scan: null }];
+  const env = makeEnvironment({
+    "index:cyanautomation": JSON.stringify(configuredRepositories),
+    "index:otherowner": JSON.stringify(otherRepositories)
+  });
+
+  const response = await worker.fetch(
+    new Request("https://worker.example/v1/repos?owner=OtherOwner"),
+    env
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    owner: "CyanAutomation",
+    scanned_at: "",
+    repositories: configuredRepositories
   });
 });
 
@@ -80,13 +101,26 @@ test("unsupported methods return a JSON 405 response", async () => {
 
 test("repository detail routes report a cache miss with the decoded full name", async () => {
   const response = await worker.fetch(
-    new Request("https://worker.example/v1/repos/owner%20name/project"),
+    new Request("https://worker.example/v1/repos/CyanAutomation/project%20name"),
     makeEnvironment()
   );
 
   assert.equal(response.status, 404);
   assert.deepEqual(await response.json(), {
     error: "No scan found",
-    repo: "owner name/project"
+    repo: "CyanAutomation/project name"
   });
+});
+
+test("repository detail routes cannot read cached scans for another owner", async () => {
+  const secretScan = { repo: { full_name: "OtherOwner/private" } };
+  const env = makeEnvironment({ "repo:otherowner/private": JSON.stringify(secretScan) });
+
+  const response = await worker.fetch(
+    new Request("https://worker.example/v1/repos/OtherOwner/private"),
+    env
+  );
+
+  assert.equal(response.status, 404);
+  assert.deepEqual(await response.json(), { error: "Not found" });
 });

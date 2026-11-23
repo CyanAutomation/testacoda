@@ -117,6 +117,9 @@ async function handleReadRequest(
   const match = url.pathname.match(/^\/v1\/repos\/([^/]+)\/([^/]+)$/);
   if (match) {
     const fullName = decodeURIComponent(match[1]) + "/" + decodeURIComponent(match[2]);
+    if (fullName.split("/", 1)[0].toLowerCase() !== owner.toLowerCase()) {
+      return responseJson({ error: "Not found" }, 404, origin);
+    }
     return await repositoryScanResponse(env, fullName, origin);
   }
   return responseJson({ error: "Not found" }, 404, origin);
@@ -124,7 +127,7 @@ async function handleReadRequest(
 
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
-  const owner = url.searchParams.get("owner") || env.GITHUB_OWNER || "CyanAutomation";
+  const owner = env.GITHUB_OWNER || "CyanAutomation";
   const origin = env.CORS_ORIGIN || "*";
   if (request.method === "OPTIONS") return optionsResponse(origin);
   if (request.method !== "GET") return responseJson({ error: "Method not allowed" }, 405, origin);
